@@ -52,7 +52,13 @@ class ThePitPlugin : JavaPlugin(), CoroutineScope by CoroutineScope(
             return
         }
 
-        KTP.setConfiguration(Configuration.forDevelopment())
+        KTP.setConfiguration(if (System.getProperty("environment") == "development" ||
+            System.getProperty("toothpick.configuration") == "development") {
+            Configuration.forDevelopment()
+        } else {
+            Configuration.forProduction()
+        })
+
         val scope = KTP.openScope(this::class.java) {
             it.installModules(
                 module {
@@ -105,7 +111,6 @@ class ThePitPlugin : JavaPlugin(), CoroutineScope by CoroutineScope(
         scope.installModules(
             module {
                 bind<Database>().toInstance(db)
-                bind<me.abhigya.pit.configuration.Configuration>().toInstance(config)
             }
         )
     }
@@ -155,5 +160,6 @@ class ThePitPlugin : JavaPlugin(), CoroutineScope by CoroutineScope(
         return isDirty
     }
 
-    class CompatibilitySetupException(message: String, cause: Throwable? = null) : Exception(message, cause)
 }
+
+class CompatibilitySetupException(message: String, cause: Throwable? = null) : Exception(message, cause)

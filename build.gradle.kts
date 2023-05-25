@@ -1,5 +1,11 @@
 import de.comahe.i18n4k.gradle.plugin.i18n4k
 import kr.entree.spigradle.kotlin.spigotAll
+import org.jooq.codegen.GenerationTool
+import org.jooq.codegen.KotlinGenerator
+import org.jooq.meta.h2.H2Database
+import org.jooq.meta.jaxb.*
+import org.jooq.meta.jaxb.Configuration
+import org.jooq.meta.jaxb.Target
 
 plugins {
     kotlin("jvm") version "1.8.21"
@@ -17,6 +23,7 @@ val javaVersion = 1.8
 val toothpick_version = "3.1.0"
 val adventure_version = "4.13.1"
 val adventure_platform_version = "4.3.0"
+val jooq_version = "3.19.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -31,19 +38,17 @@ dependencies {
     implementation("com.github.stephanenicolas.toothpick:ktp:$toothpick_version")
     kapt("com.github.stephanenicolas.toothpick:toothpick-compiler:$toothpick_version")
     compileOnly(spigotAll("1.16.5"))
-//    compileOnly(fileTree(mapOf("dir" to "${rootProject.rootDir}/lib", "include" to listOf("*.jar"))))
+    compileOnly(fileTree(mapOf("dir" to "${rootProject.rootDir}/lib", "include" to listOf("*.jar"))))
     compileOnly("de.tr7zw:item-nbt-api-plugin:2.8.0")
     implementation("com.github.cryptomorin:XSeries:9.1.0")
     implementation("com.jonahseguin:drink:1.0.5")
-    implementation("fr.minuskube.inv:smart-invs:1.2.7") {
-        exclude(group = "com.google.code.gson", module = "gson")
-    }
+    implementation("fr.minuskube.inv:smart-invs:1.2.7")
     implementation("org.spongepowered:configurate-yaml:4.1.2")
     implementation("org.spongepowered:configurate-extra-kotlin:4.1.2")
     implementation("xyz.xenondevs:particle:1.7.1")
     implementation("org.flywaydb:flyway-core:9.18.0")
-//    implementation("org.jooq:jooq:3.16.19")
-//    implementation("org.jooq:jooq-kotlin:3.16.19")
+    implementation("org.jooq:jooq:$jooq_version")
+    implementation("org.jooq:jooq-kotlin:$jooq_version")
     implementation("com.zaxxer:HikariCP:4.0.3")
     implementation("net.kyori:adventure-api:$adventure_version")
     implementation("net.kyori:adventure-text-serializer-gson:$adventure_version")
@@ -73,8 +78,8 @@ buildscript {
     }
 
     dependencies {
-//        classpath("org.jooq:jooq-meta:3.16.19")
-//        classpath("org.jooq:jooq-codegen:3.16.19")
+        classpath("org.jooq:jooq-meta:3.19.0-SNAPSHOT")
+        classpath("org.jooq:jooq-codegen:3.19.0-SNAPSHOT")
         classpath("com.h2database:h2:2.1.214")
     }
 }
@@ -86,27 +91,39 @@ configurations.implementation {
 }
 
 tasks {
-//    register("jooqGen") {
-//        GenerationTool.generate(Configuration()
-//            .withJdbc(Jdbc()
-//                .withDriver("org.h2.Driver")
-//                .withUrl("jdbc:h2:~/database.db"))
-//            .withGenerator(Generator()
-//                .withName(KotlinGenerator::class.java.canonicalName)
-//                .withDatabase(Database()
-//                    .withName(H2Database::class.java.canonicalName)
-//                    .withInputSchema("pit")
-//                    .withExcludes("flyway_schema_history"))
-//                .withGenerate(Generate()
-//                    .withJavadoc(true)
-//                    .withComments(true)
-//                    .withPojosAsKotlinDataClasses(true)
-//                    .withDaos(true))
-//                .withTarget(Target()
-//                    .withPackageName("me.abhigya.jooq.codegen")
-//                    .withDirectory("src/main/kotlin"))))
-//        dependsOn(flywayMigrate)
-//    }
+    register("jooqGen") {
+        GenerationTool.generate(
+            Configuration()
+                .withJdbc(
+                    Jdbc()
+                        .withDriver("org.h2.Driver")
+                        .withUrl("jdbc:h2:$databaseFile"),
+                )
+                .withGenerator(
+                    Generator()
+                        .withName(KotlinGenerator::class.java.canonicalName)
+                        .withDatabase(
+                            Database()
+                                .withName(H2Database::class.java.canonicalName)
+                                .withInputSchema("pit")
+                                .withExcludes("flyway_schema_history"),
+                        )
+                        .withGenerate(
+                            Generate()
+                                .withJavadoc(true)
+                                .withComments(true)
+                                .withPojosAsKotlinDataClasses(true)
+                                .withDaos(true),
+                        )
+                        .withTarget(
+                            Target()
+                                .withPackageName("me.abhigya.jooq.codegen")
+                                .withDirectory("src/main/kotlin"),
+                        ),
+                ),
+        )
+        dependsOn(flywayMigrate)
+    }
 
     assemble {
         dependsOn(shadowJar)
@@ -117,7 +134,7 @@ tasks {
         kotlinOptions.jvmTarget = javaVersion.toString()
         kotlinOptions.freeCompilerArgs = listOf("-Xjsr305=strict", "-Xjvm-default=all")
         dependsOn(flywayMigrate)
-//        dependsOn(getTasksByName("jooqGen", false))
+        dependsOn(getTasksByName("jooqGen", false))
     }
 
     processResources {
