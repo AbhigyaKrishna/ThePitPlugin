@@ -1,4 +1,4 @@
-package me.abhigya.support
+package me.abhigya.pit.support
 
 import me.abhigya.pit.model.PitPlayer.Companion.toPitPlayer
 import me.abhigya.pit.model.toBalance
@@ -43,7 +43,7 @@ class VaultEconomySupport(
     }
 
     override fun hasAccount(playerName: String): Boolean {
-        return getPlayer(playerName) != null
+        return plugin.server.offlinePlayers.any { it.name == playerName }
     }
 
     override fun hasAccount(player: OfflinePlayer): Boolean = player.hasPlayedBefore()

@@ -6,17 +6,17 @@ import java.util.*
 
 data class PitPlayer(
     private val player: Player,
-    var balance: Balance = Balance.zero()
+    val balance: Balance = Balance.zero()
 ) : Player by player {
 
     companion object {
-        private val pitPlayerByUUID = mutableMapOf<UUID, PitPlayer>()
+        private val pitPlayerByUUID: MutableMap<UUID, PitPlayer> = mutableMapOf()
 
         fun Player.toPitPlayer(): PitPlayer {
             return pitPlayerByUUID.computeIfAbsent(uniqueId) { PitPlayer(this) }
         }
 
-        fun get(uuid: UUID): PitPlayer? {
+        operator fun get(uuid: UUID): PitPlayer? {
             return pitPlayerByUUID[uuid]
         }
     }
