@@ -1,5 +1,7 @@
 import de.comahe.i18n4k.gradle.plugin.i18n4k
+import kr.entree.spigradle.kotlin.jitpack
 import kr.entree.spigradle.kotlin.spigotAll
+import kr.entree.spigradle.kotlin.vault
 import org.jooq.codegen.GenerationTool
 import org.jooq.codegen.KotlinGenerator
 import org.jooq.meta.h2.H2Database
@@ -28,6 +30,7 @@ val jooq_version = "3.19.0-SNAPSHOT"
 repositories {
     mavenCentral()
     mavenLocal()
+    jitpack()
 }
 
 dependencies {
@@ -57,6 +60,7 @@ dependencies {
     implementation("net.kyori:adventure-extra-kotlin:$adventure_version")
     implementation("net.kyori:adventure-platform-bukkit:$adventure_platform_version")
     implementation("de.comahe.i18n4k:i18n4k-core-jvm:0.5.0")
+    compileOnly("com.github.MilkBowl:VaultAPI:1.7")
 }
 
 val databaseFile = "${rootProject.projectDir.absolutePath}\\database.db"

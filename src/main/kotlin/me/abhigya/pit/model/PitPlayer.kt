@@ -6,6 +6,7 @@ import java.util.*
 
 data class PitPlayer(
     private val player: Player,
+    var balance: Balance = Balance.zero()
 ) : Player by player {
 
     companion object {
