@@ -117,7 +117,9 @@ tasks {
                                 .withJavadoc(true)
                                 .withComments(true)
                                 .withPojosAsKotlinDataClasses(true)
-                                .withDaos(true),
+                                .withDaos(true)
+                                .withKotlinNotNullPojoAttributes(true)
+                                .withImmutablePojos(true)
                         )
                         .withTarget(
                             Target()

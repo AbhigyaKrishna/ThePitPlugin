@@ -2,7 +2,6 @@ package me.abhigya.pit.util.ext
 
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-import me.abhigya.pit.util.injectMembers
 import org.bukkit.Bukkit
 import org.bukkit.plugin.Plugin
 import javax.inject.Inject

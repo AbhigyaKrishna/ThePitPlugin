@@ -2,6 +2,7 @@ package me.abhigya.pit.database.sql
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import kotlinx.coroutines.coroutineScope
 import me.abhigya.pit.database.Database
 import me.abhigya.pit.database.DatabaseType
 import me.abhigya.pit.database.NullConnection
@@ -56,22 +57,22 @@ abstract class SQLDatabase(
     }
 
     @Throws(SQLException::class)
-    suspend fun execute(query: String): Boolean {
-        return connection.prepareStatement(query).use {
+    suspend fun execute(query: String): Boolean = coroutineScope {
+        connection.prepareStatement(query).use {
             it.execute()
         }
     }
 
     @Throws(SQLException::class)
-    suspend fun query(query: String): ResultSet {
-        return connection.prepareStatement(query).use {
+    suspend fun query(query: String): ResultSet = coroutineScope {
+        connection.prepareStatement(query).use {
             it.executeQuery()
         }
     }
 
     @Throws(SQLException::class)
-    suspend fun update(update: String): Int {
-        return connection.prepareStatement(update).use {
+    suspend fun update(update: String): Int = coroutineScope {
+        connection.prepareStatement(update).use {
             it.executeUpdate()
         }
     }

@@ -58,7 +58,7 @@ class VaultEconomySupport(
 
     override fun getBalance(player: OfflinePlayer): Double {
         return if (player.isOnline) {
-            player.player?.toPitPlayer()?.balance?.toDouble() ?: 0.0
+            player.player?.toPitPlayer()?.balance?.get()?.toDouble() ?: 0.0
         } else {
             0.0
         }
@@ -74,7 +74,7 @@ class VaultEconomySupport(
 
     override fun has(player: OfflinePlayer, amount: Double): Boolean {
         return if (player.isOnline) {
-            player.player?.toPitPlayer()?.balance?.has(amount) ?: false
+            player.player?.toPitPlayer()?.balance?.get()?.has(amount) ?: false
         } else {
             false
         }
@@ -90,7 +90,7 @@ class VaultEconomySupport(
 
     override fun withdrawPlayer(player: OfflinePlayer, amount: Double): EconomyResponse {
         return if (player.isOnline) {
-            val balance = player.player?.toPitPlayer()?.balance ?: return TRANSACTION_ERROR_PLAYER_NOT_ONLINE
+            val balance = player.player?.toPitPlayer()?.balance?.get() ?: return TRANSACTION_ERROR_PLAYER_NOT_ONLINE
             if (balance.has(amount)) {
                 balance -= amount
                 EconomyResponse(amount, balance.toDouble(), EconomyResponse.ResponseType.SUCCESS, null)
@@ -112,7 +112,7 @@ class VaultEconomySupport(
 
     override fun depositPlayer(player: OfflinePlayer, amount: Double): EconomyResponse {
         return if (player.isOnline) {
-            val balance = player.player?.toPitPlayer()?.balance ?: return TRANSACTION_ERROR_PLAYER_NOT_ONLINE
+            val balance = player.player?.toPitPlayer()?.balance?.get() ?: return TRANSACTION_ERROR_PLAYER_NOT_ONLINE
             balance += amount
             EconomyResponse(amount, balance.toDouble(), EconomyResponse.ResponseType.SUCCESS, null)
         } else {

@@ -9,6 +9,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import me.abhigya.pit.database.Database
 import me.abhigya.pit.database.DatabaseType
+import me.abhigya.pit.database.sql.SQLDatabase
 import me.abhigya.pit.database.sql.h2.H2
 import me.abhigya.pit.database.sql.mysql.MySQL
 import me.abhigya.pit.database.sql.postgresql.PostGreSQL
@@ -111,6 +112,7 @@ class ThePitPlugin : JavaPlugin(), CoroutineScope by CoroutineScope(
         scope.installModules(
             module {
                 bind<Database>().toInstance(db)
+                bind<SQLDatabase>().toInstance(db)
             }
         )
     }

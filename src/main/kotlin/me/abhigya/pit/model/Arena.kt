@@ -8,4 +8,8 @@ data class Arena(
 
     private val players: MutableSet<PitPlayer> = mutableSetOf()
 
+    fun addPlayer(player: PitPlayer) {
+        players.add(player)
+    }
+
 }
