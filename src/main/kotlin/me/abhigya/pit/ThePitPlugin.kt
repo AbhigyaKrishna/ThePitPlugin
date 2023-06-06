@@ -108,12 +108,12 @@ class ThePitPlugin : JavaPlugin(), CoroutineScope by CoroutineScope(
 //            return
 //        }
 
-        scope.installModules(
-            module {
-                bind<Database>().toInstance(db)
-                bind<SQLDatabase>().toInstance(db)
-            }
-        )
+//        scope.installModules(
+//            module {
+//                bind<Database>().toInstance(db)
+//                bind<SQLDatabase>().toInstance(db)
+//            }
+//        )
     }
 
     override fun onDisable() {

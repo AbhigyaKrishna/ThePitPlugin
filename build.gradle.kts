@@ -1,12 +1,10 @@
 import de.comahe.i18n4k.gradle.plugin.i18n4k
 import kr.entree.spigradle.kotlin.jitpack
 import kr.entree.spigradle.kotlin.spigotAll
-import kr.entree.spigradle.kotlin.vault
 import org.jooq.codegen.GenerationTool
 import org.jooq.codegen.KotlinGenerator
-import org.jooq.meta.h2.H2Database
+import org.jooq.meta.hsqldb.HSQLDBDatabase
 import org.jooq.meta.jaxb.*
-import org.jooq.meta.jaxb.Configuration
 import org.jooq.meta.jaxb.Target
 
 plugins {
@@ -63,12 +61,20 @@ dependencies {
     compileOnly("com.github.MilkBowl:VaultAPI:1.7")
 }
 
-val databaseFile = "${rootProject.projectDir.absolutePath}\\database.db"
+val databaseUrl = "jdbc:hsqldb:file:${project.buildDir}/schema-gen/database;shutdown=true"
 
 flyway {
-    url = "jdbc:h2:$databaseFile"
-    schemas = arrayOf("pit")
-    defaultSchema = "pit"
+    driver = "org.hsqldb.jdbc.JDBCDriver"
+    user = "SA"
+    password = ""
+    url = databaseUrl
+    validateMigrationNaming = true
+    table = "schema_history"
+    placeholders = mapOf(
+        "table_prefix" to "",
+        "uuidtype" to "UUID",
+        "options" to ""
+    )
 }
 
 i18n4k {
@@ -84,7 +90,7 @@ buildscript {
     dependencies {
         classpath("org.jooq:jooq-meta:3.19.0-SNAPSHOT")
         classpath("org.jooq:jooq-codegen:3.19.0-SNAPSHOT")
-        classpath("com.h2database:h2:2.1.214")
+        classpath("org.hsqldb:hsqldb:2.5.2")
     }
 }
 
@@ -100,27 +106,32 @@ tasks {
             Configuration()
                 .withJdbc(
                     Jdbc()
-                        .withDriver("org.h2.Driver")
-                        .withUrl("jdbc:h2:$databaseFile"),
+                        .withDriver("org.hsqldb.jdbc.JDBCDriver")
+                        .withUrl(databaseUrl)
+                        .withUser("SA")
+                        .withPassword(""),
                 )
                 .withGenerator(
                     Generator()
                         .withName(KotlinGenerator::class.java.canonicalName)
                         .withDatabase(
                             Database()
-                                .withName(H2Database::class.java.canonicalName)
-                                .withInputSchema("pit")
+                                .withName(HSQLDBDatabase::class.java.canonicalName)
+                                .withInputSchema("PUBLIC")
+                                .withIncludes(".*")
                                 .withExcludes("flyway_schema_history")
+                                .withExcludes("(?i:information_schema\\..*)|(?i:system_lobs\\..*)")
+                                .withSchemaVersionProvider("SELECT :schema_name || '_' || MAX(\"version\") FROM \"schema_history\"")
                                 .withForcedTypes(ForcedType()
                                     .withUserType("java.util.UUID")
                                     .withBinding("me.abhigya.pit.database.binding.UUIDBinding")
-                                    .withIncludeExpression(".*\\.(uuid)\$")
+                                    .withIncludeExpression(".*\\.(UUID)\$")
                                     .withIncludeTypes("^UUID\$"),
                                     ForcedType()
                                         .withUserType("me.abhigya.pit.model.Balance")
                                         .withConverter("me.abhigya.pit.database.binding.BalanceConverter")
-                                        .withIncludeExpression(".*\\.(balance)\$")
-                                        .withIncludeTypes("^DOUBLE PRECISION\\(?\\d+?\\)?\$")
+                                        .withIncludeExpression(".*\\.(BALANCE)\$")
+                                        .withIncludeTypes("^FLOAT\$")
                                 ),
                         )
                         .withGenerate(

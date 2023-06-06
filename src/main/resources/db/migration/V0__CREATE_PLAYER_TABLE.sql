@@ -2,46 +2,48 @@
 
 -- Player Table
 CREATE TABLE "${table_prefix}players" (
-    "UUID"      ${uuidtype} NOT NULL,
-    "NAME"      VARCHAR(16) NOT NULL,
-    "BALANCE"   FLOAT NOT NULL DEFAULT 0,
-    "BOUNTY"    INT NOT NULL DEFAULT 0,
-    "LEVEL"     INT NOT NULL DEFAULT 0,
-    "PRESTIGE"  INT NOT NULL DEFAULT 0,
-    "RENOWN"    INT NOT NULL DEFAULT 0,
-    CONSTRAINT PRIMARY KEY ("UUID")
-);
+    "UUID"          ${uuidtype} NOT NULL,
+    "NAME"          CHARACTER VARYING(16) NOT NULL,
+    "LOWER_NAME"    CHARACTER VARYING(16) GENERATED ALWAYS AS (LOWER("NAME")),
+    "BALANCE"       FLOAT DEFAULT 0 NOT NULL,
+    "BOUNTY"        INT DEFAULT 0 NOT NULL,
+    "LEVEL"         INT DEFAULT 0 NOT NULL,
+    "PRESTIGE"      INT DEFAULT 0 NOT NULL,
+    "RENOWN"        INT DEFAULT 0 NOT NULL,
+    CONSTRAINT "${table_prefix}uuid_name_unique" UNIQUE ("UUID", "NAME")
+)${options};
 
 -- Stats Table
 CREATE TABLE "${table_prefix}stats" (
     "UUID"                      ${uuidtype} NOT NULL,
-    "BOW_DAMAGE_TAKEN"          FLOAT NOT NULL DEFAULT 0,
-    "DAMAGE_TAKEN"              FLOAT NOT NULL DEFAULT 0,
-    "DEATHS"                    INT NOT NULL DEFAULT 0,
-    "MELEE_DAMAGE_TAKEN"        FLOAT NOT NULL DEFAULT 0,
-    "BLOCKS_BROKEN"             INT NOT NULL DEFAULT 0,
-    "BLOCKS_PLACED"             INT NOT NULL DEFAULT 0,
-    "CHAT_MESSAGES"             INT NOT NULL DEFAULT 0,
-    "FISHING_RODS_LAUNCHED"     INT NOT NULL DEFAULT 0,
-    "GOLDEN_APPLES_EATEN"       INT NOT NULL DEFAULT 0,
-    "JUMPS_INTO_PIT"            INT NOT NULL DEFAULT 0,
-    "LAVA_BUCKETS_EMPTIED"      INT NOT NULL DEFAULT 0,
-    "LEFT_CLICKS"               INT NOT NULL DEFAULT 0,
-    "ARROW_HITS"                INT NOT NULL DEFAULT 0,
-    "ARROW_SHOTS"               INT NOT NULL DEFAULT 0,
-    "ASSISTS"                   INT NOT NULL DEFAULT 0,
-    "BOW_DAMAGE_DEALT"          FLOAT NOT NULL DEFAULT 0,
-    "DIAMOND_ITEMS_PURCHASED"   INT NOT NULL DEFAULT 0,
-    "LAUNCHES"                  INT NOT NULL DEFAULT 0,
-    "DAMAGE_DEALT"              FLOAT NOT NULL DEFAULT 0,
-    "HIGHEST_STREAK"            INT NOT NULL DEFAULT 0,
-    "KILLS"                     INT NOT NULL DEFAULT 0,
-    "MELEE_DAMAGE_DEALT"        FLOAT NOT NULL DEFAULT 0,
-    "SWORD_HITS"                INT NOT NULL DEFAULT 0,
-    "GOLD_EARNED"               INT NOT NULL DEFAULT 0,
-    "GOLDEN_HEADS_EATEN"        INT NOT NULL DEFAULT 0,
-    CONSTRAINT PRIMARY KEY ("UUID")
-);
+    "BOW_DAMAGE_TAKEN"          FLOAT DEFAULT 0 NOT NULL,
+    "DAMAGE_TAKEN"              FLOAT DEFAULT 0 NOT NULL,
+    "DEATHS"                    INT DEFAULT 0 NOT NULL,
+    "MELEE_DAMAGE_TAKEN"        FLOAT DEFAULT 0 NOT NULL,
+    "BLOCKS_BROKEN"             INT DEFAULT 0 NOT NULL,
+    "BLOCKS_PLACED"             INT DEFAULT 0 NOT NULL,
+    "CHAT_MESSAGES"             INT DEFAULT 0 NOT NULL,
+    "FISHING_RODS_LAUNCHED"     INT DEFAULT 0 NOT NULL,
+    "GOLDEN_APPLES_EATEN"       INT DEFAULT 0 NOT NULL,
+    "JUMPS_INTO_PIT"            INT DEFAULT 0 NOT NULL,
+    "LAVA_BUCKETS_EMPTIED"      INT DEFAULT 0 NOT NULL,
+    "LEFT_CLICKS"               INT DEFAULT 0 NOT NULL,
+    "ARROW_HITS"                INT DEFAULT 0 NOT NULL,
+    "ARROW_SHOTS"               INT DEFAULT 0 NOT NULL,
+    "ASSISTS"                   INT DEFAULT 0 NOT NULL,
+    "BOW_DAMAGE_DEALT"          FLOAT DEFAULT 0 NOT NULL,
+    "DIAMOND_ITEMS_PURCHASED"   INT DEFAULT 0 NOT NULL,
+    "LAUNCHES"                  INT DEFAULT 0 NOT NULL,
+    "DAMAGE_DEALT"              FLOAT DEFAULT 0 NOT NULL,
+    "HIGHEST_STREAK"            INT DEFAULT 0 NOT NULL,
+    "KILLS"                     INT DEFAULT 0 NOT NULL,
+    "MELEE_DAMAGE_DEALT"        FLOAT DEFAULT 0 NOT NULL,
+    "SWORD_HITS"                INT DEFAULT 0 NOT NULL,
+    "GOLD_EARNED"               INT DEFAULT 0 NOT NULL,
+    "GOLDEN_HEADS_EATEN"        INT DEFAULT 0 NOT NULL,
+    CONSTRAINT "${table_prefix}uuid_unique" UNIQUE ("UUID")
+)${options};
 
 -- Indexes
-CREATE INDEX "${table_prefix}players_name_index" ON "${table_prefix}players" ("NAME");
+CREATE INDEX "${table_prefix}player_name_idx" ON "${table_prefix}players" ("NAME");
+CREATE INDEX "${table_prefix}player_lower_name_idx" ON "${table_prefix}players" ("LOWER_NAME");
