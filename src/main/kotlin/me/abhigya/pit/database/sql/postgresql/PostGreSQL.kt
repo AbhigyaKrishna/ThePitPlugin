@@ -2,26 +2,11 @@ package me.abhigya.pit.database.sql.postgresql
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import me.abhigya.pit.database.DatabaseType
+import me.abhigya.pit.database.Vendor
 import me.abhigya.pit.database.sql.SQLDatabase
 import java.sql.SQLException
 
-class PostGreSQL(
-    private val host: String,
-    private val port: Int,
-    private val database: String,
-    private val username: String,
-    private val password: String,
-    private val params: String,
-    config: HikariConfig = HikariConfig()
-) : SQLDatabase(DatabaseType.PostGreSQL, config) {
-
-    init {
-        check(host.isNotEmpty()) { "The host cannot be null or empty!" }
-        check(database.isNotEmpty()) { "The database cannot be null or empty!" }
-        check(username.isNotEmpty()) { "The username cannot be null!" }
-        check(password.isNotEmpty()) { "The password cannot be null!" }
-    }
+class PostGreSQL(config: HikariConfig = HikariConfig()) : SQLDatabase(Vendor.PostGreSQL, config) {
 
     @Synchronized
     @Throws(IllegalStateException::class, SQLException::class)

@@ -8,7 +8,10 @@ import java.util.concurrent.atomic.AtomicReference
 data class PitPlayer(
     private val player: Player,
     val balance: AtomicReference<Balance> = AtomicReference(Balance.zero()),
-    val stats: PlayerStats = PlayerStats()
+    val stats: PlayerStats = PlayerStats(),
+    var bounty: Int = 0,
+    var level: Int = 0,
+    var renown: Int = 0
 ) : Player by player {
 
     companion object {

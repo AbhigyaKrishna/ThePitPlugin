@@ -1,12 +1,12 @@
 package me.abhigya.pit.configuration
 
-import me.abhigya.pit.database.DatabaseType
+import me.abhigya.pit.database.Vendor
 import org.spongepowered.configurate.objectmapping.ConfigSerializable
 
 @ConfigSerializable
 class DataBaseConfig {
 
-    var databaseType: DatabaseType = DatabaseType.H2
+    var vendor: Vendor = Vendor.H2
 
     var host: String = "localhost"
     var port: Int = 3306

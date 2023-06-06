@@ -3,8 +3,10 @@ package me.abhigya.pit.database
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import me.abhigya.jooq.codegen.tables.Players
 import me.abhigya.jooq.codegen.tables.records.PlayersRecord
+import me.abhigya.jooq.codegen.tables.records.StatsRecord
+import me.abhigya.jooq.codegen.tables.references.PLAYERS
+import me.abhigya.jooq.codegen.tables.references.STATS
 import me.abhigya.pit.ThePitPlugin
 import me.abhigya.pit.database.sql.SQLDatabase
 import me.abhigya.pit.util.ext.scope
@@ -24,11 +26,13 @@ import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
-val MATCH_ALL_EXCEPT_INFORMATION_SCHEMA = Regex("^(?!INFORMATION_SCHEMA)(.*?)$").toPattern()
-val MATCH_ALL = Regex("^(.*?)\$").toPattern()
-const val REPLACEMENT ="pit_$0"
+class JooqContext(private val dialect: SQLDialect) {
 
-class JooqContext(val dialect: SQLDialect) {
+    companion object {
+        val MATCH_ALL_EXCEPT_INFORMATION_SCHEMA = Regex("^(?!INFORMATION_SCHEMA)(.*?)$").toPattern()
+        val MATCH_ALL = Regex("^(.*?)\$").toPattern()
+        const val REPLACEMENT ="pit_$0"
+    }
 
     fun createContext(connection: Connection): DSLContext {
         class ConnectionProviderImpl : ConnectionProvider {
@@ -68,26 +72,39 @@ class JooqContext(val dialect: SQLDialect) {
     }
 }
 
-val DatabaseType.dialect: SQLDialect
+val Vendor.dialect: SQLDialect
     get() = when (this) {
-        DatabaseType.H2 -> SQLDialect.H2
-        DatabaseType.MYSQL -> SQLDialect.MYSQL
-        DatabaseType.PostGreSQL -> SQLDialect.POSTGRES
+        Vendor.HSQLDB -> SQLDialect.HSQLDB
+        Vendor.MYSQL -> SQLDialect.MYSQL
+        Vendor.MARIADB -> SQLDialect.MARIADB
+        Vendor.PostGreSQL -> SQLDialect.POSTGRES
     }
 
-val SQLDatabase.context: JooqContext get() = JooqContext(databaseType.dialect)
+val Vendor.uuidType
+    get() = when (this) {
+        Vendor.HSQLDB, Vendor.PostGreSQL -> "UUID"
+        Vendor.MYSQL, Vendor.MARIADB -> "BINARY(16)"
+    }
+
+val SQLDatabase.context: JooqContext get() = JooqContext(vendor.dialect)
 
 @OptIn(ExperimentalContracts::class)
-inline fun databaseTransaction(crossinline block: JooqContext.() -> Unit) {
+inline fun databaseTransaction(crossinline block: suspend JooqContext.(DSLContext) -> Unit) {
     contract {
         callsInPlace(block, InvocationKind.AT_MOST_ONCE)
     }
     val scope = scope
     scope.getInstance<ThePitPlugin>().launch(Dispatchers.IO) {
-        block(scope.getInstance<SQLDatabase>().context)
+        val database = scope.getInstance<SQLDatabase>()
+        val jooqContext = database.context
+        block(jooqContext, jooqContext.createContext(database.connection))
     }
 }
 
 suspend fun JooqContext.fetchPlayerData(context: DSLContext, uuid: UUID): PlayersRecord = coroutineScope {
-    context.fetch(Players.PLAYERS, Players.PLAYERS.UUID.eq(uuid.toString())).first()
+    context.fetch(PLAYERS, PLAYERS.UUID.eq(uuid)).first()
+}
+
+suspend fun JooqContext.fetchPlayerStats(context: DSLContext, uuid: UUID): StatsRecord = coroutineScope {
+    context.fetch(STATS, STATS.UUID.eq(uuid)).first()
 }

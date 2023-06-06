@@ -8,10 +8,9 @@ import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import me.abhigya.pit.database.Database
-import me.abhigya.pit.database.DatabaseType
+import me.abhigya.pit.database.Vendor
 import me.abhigya.pit.database.sql.SQLDatabase
-import me.abhigya.pit.database.sql.h2.H2
-import me.abhigya.pit.database.sql.mysql.MySQL
+import me.abhigya.pit.database.sql.mariadb.MariaDB
 import me.abhigya.pit.database.sql.postgresql.PostGreSQL
 import me.abhigya.pit.util.Platform
 import net.kyori.adventure.platform.AudienceProvider
@@ -81,33 +80,33 @@ class ThePitPlugin : JavaPlugin(), CoroutineScope by CoroutineScope(
         val config = scope.getInstance<me.abhigya.pit.configuration.Configuration>()
         config.saveDefaults()
 
-        val db = when (config.database.databaseType) {
-            DatabaseType.H2 -> H2(File(this.dataFolder, "database.db"))
-            DatabaseType.MYSQL -> MySQL(
-                config.database.host,
-                config.database.port,
-                config.database.database,
-                config.database.username,
-                config.database.password,
-                config.database.params
-            )
-            DatabaseType.PostGreSQL -> PostGreSQL(
-                config.database.host,
-                config.database.port,
-                config.database.database,
-                config.database.username,
-                config.database.password,
-                config.database.params
-            )
-        }
-
-        runCatching {
-            db.connect()
-        }.onFailure {
-            scope.getInstance<Logger>().log(Level.SEVERE, "Failed to connect to database", it)
-            this.server.pluginManager.disablePlugin(this)
-            return
-        }
+//        val db = when (config.database.vendor) {
+//            Vendor.H2 -> H2(File(this.dataFolder, "database.db"))
+//            Vendor.MYSQL -> MariaDB(
+//                config.database.host,
+//                config.database.port,
+//                config.database.database,
+//                config.database.username,
+//                config.database.password,
+//                config.database.params
+//            )
+//            Vendor.PostGreSQL -> PostGreSQL(
+//                config.database.host,
+//                config.database.port,
+//                config.database.database,
+//                config.database.username,
+//                config.database.password,
+//                config.database.params
+//            )
+//        }
+//
+//        runCatching {
+//            db.connect()
+//        }.onFailure {
+//            scope.getInstance<Logger>().log(Level.SEVERE, "Failed to connect to database", it)
+//            this.server.pluginManager.disablePlugin(this)
+//            return
+//        }
 
         scope.installModules(
             module {

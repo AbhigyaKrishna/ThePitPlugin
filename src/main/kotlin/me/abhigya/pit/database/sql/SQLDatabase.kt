@@ -4,16 +4,25 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import kotlinx.coroutines.coroutineScope
 import me.abhigya.pit.database.Database
-import me.abhigya.pit.database.DatabaseType
+import me.abhigya.pit.database.DatabaseSettings
+import me.abhigya.pit.database.Vendor
 import me.abhigya.pit.database.NullConnection
 import java.sql.*
 
 abstract class SQLDatabase(
-    type: DatabaseType,
+    vendor: Vendor,
+    protected val settings: DatabaseSettings,
     protected val config: HikariConfig
-) : Database(type) {
+) : Database(vendor) {
+
+    companion object {
+        const val AUTOCOMMIT: Boolean = false
+        const val FETCH_SIZE: Int = 1000
+        const val SOCKET_TIMEOUT: Int = 30000
+    }
 
     protected var dataSource: HikariDataSource? = null
+    private var retries = 5
 
     var connection: Connection = NullConnection
         @Throws(IllegalStateException::class, SQLException::class)
@@ -39,8 +48,6 @@ abstract class SQLDatabase(
         }
         protected set
 
-    private var retries = 5
-
     override val isConnected: Boolean
         get() = try {
             connection != NullConnection && !connection.isClosed && connection.isValid(3)
@@ -48,12 +55,28 @@ abstract class SQLDatabase(
             false
         }
 
+    protected abstract fun prepare()
+
+    @Throws(SQLException::class)
+    override fun connect() {
+        prepare()
+
+        config.username = settings.credentials.username
+        config.password = settings.credentials.password
+        config.driverClassName = vendor.jdbcDriver.jdbcDriverClass
+        config.dataSourceClassName = vendor.jdbcDriver.dataSourceClass
+    }
+
     @Throws(SQLException::class)
     override fun disconnect() {
         check(isConnected) { "Not connected!" }
         connection.close()
         connection = NullConnection
         dataSource?.close()
+    }
+
+    protected fun createDataSource() {
+        dataSource = HikariDataSource(config)
     }
 
     @Throws(SQLException::class)

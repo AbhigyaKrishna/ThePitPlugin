@@ -1,7 +1,7 @@
 package me.abhigya.pit.database
 
 abstract class Database(
-    val databaseType: DatabaseType
+    val vendor: Vendor
 ) {
 
     abstract val isConnected: Boolean

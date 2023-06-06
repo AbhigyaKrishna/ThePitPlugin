@@ -110,16 +110,24 @@ tasks {
                             Database()
                                 .withName(H2Database::class.java.canonicalName)
                                 .withInputSchema("pit")
-                                .withExcludes("flyway_schema_history"),
+                                .withExcludes("flyway_schema_history")
+                                .withForcedTypes(ForcedType()
+                                    .withUserType("java.util.UUID")
+                                    .withBinding("me.abhigya.pit.database.binding.UUIDBinding")
+                                    .withIncludeExpression(".*\\.(uuid)\$")
+                                    .withIncludeTypes("^UUID\$"),
+                                    ForcedType()
+                                        .withUserType("me.abhigya.pit.model.Balance")
+                                        .withConverter("me.abhigya.pit.database.binding.BalanceConverter")
+                                        .withIncludeExpression(".*\\.(balance)\$")
+                                        .withIncludeTypes("^DOUBLE PRECISION\\(?\\d+?\\)?\$")
+                                ),
                         )
                         .withGenerate(
                             Generate()
                                 .withJavadoc(true)
                                 .withComments(true)
-                                .withPojosAsKotlinDataClasses(true)
                                 .withDaos(true)
-                                .withKotlinNotNullPojoAttributes(true)
-                                .withImmutablePojos(true)
                         )
                         .withTarget(
                             Target()
