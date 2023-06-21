@@ -1,6 +1,4 @@
 import de.comahe.i18n4k.gradle.plugin.i18n4k
-import kr.entree.spigradle.kotlin.jitpack
-import kr.entree.spigradle.kotlin.spigotAll
 import org.jooq.codegen.GenerationTool
 import org.jooq.codegen.KotlinGenerator
 import org.jooq.meta.hsqldb.HSQLDBDatabase
@@ -10,8 +8,8 @@ import org.jooq.meta.jaxb.Target
 plugins {
     kotlin("jvm") version "1.8.21"
     kotlin("kapt") version "1.8.21"
-    id("kr.entree.spigradle") version "1.2.4"
     id("com.github.johnrengelman.shadow") version "7.1.2"
+    id("net.minecrell.plugin-yml.bukkit") version "0.5.3"
     id("org.flywaydb.flyway") version "9.18.0"
     id("de.comahe.i18n4k") version "0.5.0"
 }
@@ -19,30 +17,28 @@ plugins {
 group = "me.abhigya"
 version = "1.0-SNAPSHOT"
 
-val javaVersion = 1.8
+val javaVersion = 17
 val toothpick_version = "3.1.0"
 val adventure_version = "4.13.1"
 val adventure_platform_version = "4.3.0"
-val jooq_version = "3.19.0-SNAPSHOT"
+val jooq_version = "3.18.0"
 
 repositories {
     mavenCentral()
-    mavenLocal()
-    jitpack()
+    maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
+    maven("https://oss.sonatype.org/content/repositories/snapshots/")
+    maven("https://jitpack.io")
 }
 
 dependencies {
-    implementation(kotlin("stdlib-jdk8"))
     implementation(platform("org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.6.4"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
     implementation("com.github.stephanenicolas.toothpick:ktp:$toothpick_version")
     kapt("com.github.stephanenicolas.toothpick:toothpick-compiler:$toothpick_version")
-    compileOnly(spigotAll("1.16.5"))
+    compileOnly("org.spigotmc:spigot-api:1.17.1-R0.1-SNAPSHOT")
     compileOnly(fileTree(mapOf("dir" to "${rootProject.rootDir}/lib", "include" to listOf("*.jar"))))
-    compileOnly("de.tr7zw:item-nbt-api-plugin:2.8.0")
     implementation("com.github.cryptomorin:XSeries:9.1.0")
-    implementation("com.jonahseguin:drink:1.0.5")
     implementation("fr.minuskube.inv:smart-invs:1.2.7")
     implementation("org.spongepowered:configurate-yaml:4.1.2")
     implementation("org.spongepowered:configurate-extra-kotlin:4.1.2")
@@ -88,8 +84,8 @@ buildscript {
     }
 
     dependencies {
-        classpath("org.jooq:jooq-meta:3.19.0-SNAPSHOT")
-        classpath("org.jooq:jooq-codegen:3.19.0-SNAPSHOT")
+        classpath("org.jooq:jooq-meta:3.18.0")
+        classpath("org.jooq:jooq-codegen:3.18.0")
         classpath("org.hsqldb:hsqldb:2.5.2")
     }
 }
@@ -193,9 +189,11 @@ tasks {
 kapt.includeCompileClasspath = false
 flyway.cleanDisabled = false
 
-spigot {
+bukkit {
+    main = "me.abhigya.pit.ThePitPlugin"
     name = "Pit"
     version = "1.0"
     authors = listOf("Abhigya")
     description = "Pit plugin"
+    apiVersion = "1.13"
 }

@@ -2,8 +2,6 @@ package me.abhigya.pit
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
-import com.jonahseguin.drink.CommandService
-import com.jonahseguin.drink.command.DrinkCommandService
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -22,7 +20,6 @@ import org.bukkit.plugin.java.JavaPlugin
 import org.spongepowered.configurate.ScopedConfigurationNode
 import org.spongepowered.configurate.yaml.YamlConfigurationLoader
 import toothpick.Scope
-import toothpick.configuration.Configuration
 import toothpick.ktp.KTP
 import toothpick.ktp.binding.bind
 import toothpick.ktp.binding.module
@@ -31,10 +28,40 @@ import java.io.File
 import java.util.logging.Level
 import java.util.logging.Logger
 
-@kr.entree.spigradle.Plugin
 class ThePitPlugin : JavaPlugin(), CoroutineScope by CoroutineScope(
     SupervisorJob() + CoroutineName("Pit")
 ) {
+
+    val scope: Scope
+
+    init {
+        KTP.setConfiguration(getConfiguration())
+        KTP.openRootScope()
+            .installModules(
+                module {
+                    bind<ThePitPlugin>().toInstance(this@ThePitPlugin)
+                }
+            )
+        scope = KTP.openScope(this) {
+            it.installModules(
+                module {
+                    bind<JavaPlugin>().toInstance(this@ThePitPlugin)
+                    bind<Plugin>().toInstance(this@ThePitPlugin)
+                    bind<Logger>().toInstance(this@ThePitPlugin.logger)
+                    bind<CoroutineScope>().toInstance(this@ThePitPlugin)
+                    bind<MiniMessage>().toProviderInstance {
+                        MiniMessage.builder().build()
+                    }.providesSingleton().providesReleasable()
+                    bind<AudienceProvider>().toProviderInstance {
+                        BukkitAudiences.create(this@ThePitPlugin)
+                    }.providesSingleton().providesReleasable()
+                    bind<Gson>().toProviderInstance {
+                        GsonBuilder().disableHtmlEscaping().serializeNulls().create()
+                    }.providesSingleton().providesReleasable()
+                }
+            ).supportScopeAnnotation(PitPluginScope::class.java)
+        }
+    }
 
     override fun onEnable() {
         logger.log(Level.INFO, "Running compatibility setup...")
@@ -50,31 +77,6 @@ class ThePitPlugin : JavaPlugin(), CoroutineScope by CoroutineScope(
             logger.log(Level.SEVERE, "Compatibility setup failed!", it)
             this.server.pluginManager.disablePlugin(this)
             return
-        }
-
-        KTP.setConfiguration(if (System.getProperty("environment") == "development" ||
-            System.getProperty("toothpick.configuration") == "development") {
-            Configuration.forDevelopment()
-        } else {
-            Configuration.forProduction()
-        })
-
-        val scope = KTP.openScope(this::class.java) {
-            it.installModules(
-                module {
-                    bind<JavaPlugin>().toInstance(this@ThePitPlugin)
-                    bind<Plugin>().toInstance(this@ThePitPlugin)
-                    bind<Logger>().toInstance(this@ThePitPlugin.logger)
-                    bind<CoroutineScope>().toInstance(this@ThePitPlugin)
-                    bind<MiniMessage>().toInstance(MiniMessage.builder().build())
-                    bind<AudienceProvider>().toInstance(BukkitAudiences.create(this@ThePitPlugin))
-                    bind<Gson>().toInstance(GsonBuilder().disableHtmlEscaping().serializeNulls().create())
-                    bind<CommandService>().toInstance(DrinkCommandService(this@ThePitPlugin))
-                },
-                module {
-                    bind<Scope>().toInstance(it)
-                }
-            )
         }
 
         val config = scope.getInstance<me.abhigya.pit.configuration.Configuration>()
@@ -117,7 +119,7 @@ class ThePitPlugin : JavaPlugin(), CoroutineScope by CoroutineScope(
     }
 
     override fun onDisable() {
-        KTP.closeScope(this::class.java)
+        KTP.closeScope(this)
     }
 
     private fun runCompatibilitySetup(): Boolean {

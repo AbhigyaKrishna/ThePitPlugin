@@ -8,16 +8,14 @@ enum class Platform {
     ;
 
     companion object {
-        val CURRENT: Platform = try {
+        val CURRENT: Platform = runCatching {
             Class.forName("com.destroystokyo.paper.PaperConfig")
             PAPER
-        } catch (ex: ClassNotFoundException) {
-            try {
-                Class.forName("org.spigotmc.AsyncCatcher")
-                SPIGOTMC
-            } catch (ex: ClassNotFoundException) {
-                BUKKIT
-            }
+        }.recoverCatching {
+            Class.forName("org.spigotmc.AsyncCatcher")
+            SPIGOTMC
+        }.getOrElse {
+            BUKKIT
         }
     }
 
