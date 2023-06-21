@@ -77,12 +77,12 @@ val Vendor.dialect: SQLDialect
         Vendor.HSQLDB -> SQLDialect.HSQLDB
         Vendor.MYSQL -> SQLDialect.MYSQL
         Vendor.MARIADB -> SQLDialect.MARIADB
-        Vendor.PostGreSQL -> SQLDialect.POSTGRES
+        Vendor.POSTGRESQL -> SQLDialect.POSTGRES
     }
 
 val Vendor.uuidType
     get() = when (this) {
-        Vendor.HSQLDB, Vendor.PostGreSQL -> "UUID"
+        Vendor.HSQLDB, Vendor.POSTGRESQL -> "UUID"
         Vendor.MYSQL, Vendor.MARIADB -> "BINARY(16)"
     }
 

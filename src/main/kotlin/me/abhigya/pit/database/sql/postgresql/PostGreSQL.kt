@@ -6,7 +6,7 @@ import me.abhigya.pit.database.Vendor
 import me.abhigya.pit.database.sql.SQLDatabase
 import java.sql.SQLException
 
-class PostGreSQL(config: HikariConfig = HikariConfig()) : SQLDatabase(Vendor.PostGreSQL, config) {
+class PostGreSQL(config: HikariConfig = HikariConfig()) : SQLDatabase(Vendor.POSTGRESQL, config) {
 
     @Synchronized
     @Throws(IllegalStateException::class, SQLException::class)

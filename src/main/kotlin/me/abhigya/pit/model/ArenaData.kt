@@ -6,5 +6,4 @@ data class ArenaData(
     val spawnArena: BoundingBox,
     val pitHoleArea: BoundingBox,
     val minY: Int
-) {
-}
+)

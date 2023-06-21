@@ -5,6 +5,9 @@ import com.google.gson.GsonBuilder
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.runBlocking
+import me.abhigya.pit.configuration.Configs
+import me.abhigya.pit.configuration.ConfigsImpl
 import me.abhigya.pit.database.Database
 import me.abhigya.pit.database.Vendor
 import me.abhigya.pit.database.sql.SQLDatabase
@@ -15,16 +18,18 @@ import net.kyori.adventure.platform.AudienceProvider
 import net.kyori.adventure.platform.bukkit.BukkitAudiences
 import net.kyori.adventure.text.minimessage.MiniMessage
 import org.bukkit.Bukkit
+import org.bukkit.configuration.Configuration
+import org.bukkit.configuration.ConfigurationSection
+import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.plugin.Plugin
 import org.bukkit.plugin.java.JavaPlugin
-import org.spongepowered.configurate.ScopedConfigurationNode
-import org.spongepowered.configurate.yaml.YamlConfigurationLoader
 import toothpick.Scope
 import toothpick.ktp.KTP
 import toothpick.ktp.binding.bind
 import toothpick.ktp.binding.module
 import toothpick.ktp.extension.getInstance
 import java.io.File
+import java.nio.file.Path
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -32,7 +37,13 @@ class ThePitPlugin : JavaPlugin(), CoroutineScope by CoroutineScope(
     SupervisorJob() + CoroutineName("Pit")
 ) {
 
-    val scope: Scope
+    companion object {
+        fun getPlugin(): ThePitPlugin {
+            return KTP.openRootScope().getInstance()
+        }
+    }
+
+    private val scope: Scope
 
     init {
         KTP.setConfiguration(getConfiguration())
@@ -58,6 +69,8 @@ class ThePitPlugin : JavaPlugin(), CoroutineScope by CoroutineScope(
                     bind<Gson>().toProviderInstance {
                         GsonBuilder().disableHtmlEscaping().serializeNulls().create()
                     }.providesSingleton().providesReleasable()
+                    bind<Path>().withName("dataFolder").toInstance(this@ThePitPlugin.dataFolder.toPath())
+                    bind<Configs>().toClass(ConfigsImpl::class).singleton()
                 }
             ).supportScopeAnnotation(PitPluginScope::class.java)
         }
@@ -79,8 +92,14 @@ class ThePitPlugin : JavaPlugin(), CoroutineScope by CoroutineScope(
             return
         }
 
-        val config = scope.getInstance<me.abhigya.pit.configuration.Configuration>()
-        config.saveDefaults()
+        val config = scope.getInstance<Configs>() as ConfigsImpl
+        runBlocking {
+            val result = config.reloadConfigs()
+
+            if (!result.isSuccess()) {
+                logger.log(Level.SEVERE, "Failed to load configs!")
+            }
+        }
 
 //        val db = when (config.database.vendor) {
 //            Vendor.H2 -> H2(File(this.dataFolder, "database.db"))
@@ -125,28 +144,27 @@ class ThePitPlugin : JavaPlugin(), CoroutineScope by CoroutineScope(
     private fun runCompatibilitySetup(): Boolean {
         var isDirty = false
 
-        fun patchConfig(file: File, vararg patches: Triple<String, (ScopedConfigurationNode<*>) -> Boolean, Any>) {
-            YamlConfigurationLoader.builder()
-                .file(file)
-                .build().run {
-                    val cfg = this.load()
-                    var localDirty = false
-                    for (patch in patches) {
-                        val node = cfg.node(patch.first.split("."))
-                        if (patch.second(node)) {
-                            node.set(patch.third)
-                            isDirty = true
-                            localDirty = true
-                        }
-                    }
-
-                    if (localDirty) this.save(cfg)
+        fun patchConfig(file: File, vararg patches: Pair<(Configuration) -> Boolean, (Configuration) -> Unit>) {
+            val config = YamlConfiguration.loadConfiguration(file)
+            var localDirty = false
+            for (patch in patches) {
+                if (patch.first(config)) {
+                    patch.second(config)
+                    isDirty = true
+                    localDirty = true
                 }
+            }
+
+            if (localDirty) config.save(file)
         }
 
         if (Platform.CURRENT == Platform.PAPER) {
             File("paper.yml").runCatching {
-                patchConfig(this, Triple("warnWhenSettingExcessiveVelocity", { it.getBoolean(true) }, false))
+                patchConfig(this, Pair({
+                    it.getBoolean("warnWhenSettingExcessiveVelocity", true)
+                }, {
+                    it.set("warnWhenSettingExcessiveVelocity", false)
+                }))
             }.onFailure {
                 throw CompatibilitySetupException("Failed to patch paper.yml", it)
             }
@@ -154,7 +172,11 @@ class ThePitPlugin : JavaPlugin(), CoroutineScope by CoroutineScope(
 
         if (Bukkit.getPluginManager().getPlugin("ViaVersion") != null) {
             File("plugins/ViaVersion/config.yml").runCatching {
-                patchConfig(this, Triple("use-1_15-instant-respawn", { !it.boolean }, true))
+                patchConfig(this, Pair({
+                    !it.getBoolean("use-1_15-instant-respawn", false)
+                }, {
+                    it.set("use-1_15-instant-respawn", true)
+                }))
             }.onFailure {
                 throw CompatibilitySetupException("Failed to patch ViaVersion config.yml", it)
             }

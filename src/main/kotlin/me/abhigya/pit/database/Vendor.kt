@@ -7,7 +7,7 @@ enum class Vendor(
     HSQLDB("HyperSQL", JDBCDriver.HSQLDB),
     MYSQL("MySQL", JDBCDriver.MARIADB),
     MARIADB("MariaDB", JDBCDriver.MARIADB),
-    PostGreSQL("PostGreSQL", JDBCDriver.PostGreSQL)
+    POSTGRESQL("PostGreSQL", JDBCDriver.PostGreSQL)
     ;
 
     fun isLocal(): Boolean = this == HSQLDB

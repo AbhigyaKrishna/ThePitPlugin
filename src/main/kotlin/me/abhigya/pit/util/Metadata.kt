@@ -1,13 +1,11 @@
 package me.abhigya.pit.util
 
-import me.abhigya.pit.util.ext.scope
+import me.abhigya.pit.ThePitPlugin
 import org.bukkit.metadata.FixedMetadataValue
 import org.bukkit.metadata.MetadataValue
 import org.bukkit.plugin.Plugin
-import org.bukkit.plugin.java.JavaPlugin
-import toothpick.ktp.extension.getInstance
 
-private val plugin = scope.getInstance<JavaPlugin>()
+private val plugin = ThePitPlugin.getPlugin()
 typealias Metadata = Pair<String, MetadataValue>
 
 val PLACED_BLOCK_METADATA: Metadata = "placed" to FixedMetadataValue(plugin, true)
