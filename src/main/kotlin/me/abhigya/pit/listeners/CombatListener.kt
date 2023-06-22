@@ -1,6 +1,9 @@
 package me.abhigya.pit.listeners
 
+import me.abhigya.pit.ArenaScope
 import me.abhigya.pit.model.PitPlayer.Companion.toPitPlayer
+import me.abhigya.pit.util.BREAKABLE_BLOCK_METADATA
+import me.abhigya.pit.util.hasMetaData
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
@@ -15,11 +18,12 @@ import org.bukkit.event.inventory.CraftItemEvent
 import org.bukkit.event.player.PlayerItemDamageEvent
 import java.time.Instant
 
+@ArenaScope
 class CombatListener : Listener {
 
     @EventHandler
     fun BlockBreakEvent.handleBlockBreak() {
-        if (block.hasMetadata("breakable")) return
+        if (block.hasMetaData(BREAKABLE_BLOCK_METADATA)) return
 
         isCancelled = true
     }

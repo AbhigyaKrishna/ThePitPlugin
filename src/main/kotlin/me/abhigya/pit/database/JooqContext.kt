@@ -9,7 +9,6 @@ import me.abhigya.jooq.codegen.tables.references.PLAYERS
 import me.abhigya.jooq.codegen.tables.references.STATS
 import me.abhigya.pit.ThePitPlugin
 import me.abhigya.pit.database.sql.SQLDatabase
-import me.abhigya.pit.util.ext.scope
 import org.jooq.ConnectionProvider
 import org.jooq.DSLContext
 import org.jooq.SQLDialect
@@ -93,9 +92,9 @@ inline fun databaseTransaction(crossinline block: suspend JooqContext.(DSLContex
     contract {
         callsInPlace(block, InvocationKind.AT_MOST_ONCE)
     }
-    val scope = scope
-    scope.getInstance<ThePitPlugin>().launch(Dispatchers.IO) {
-        val database = scope.getInstance<SQLDatabase>()
+    val plugin = ThePitPlugin.getPlugin()
+    plugin.launch(Dispatchers.IO) {
+        val database = plugin.scope.getInstance<SQLDatabase>()
         val jooqContext = database.context
         block(jooqContext, jooqContext.createContext(database.connection))
     }

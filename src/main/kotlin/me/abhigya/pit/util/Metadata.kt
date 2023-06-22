@@ -1,6 +1,7 @@
 package me.abhigya.pit.util
 
 import me.abhigya.pit.ThePitPlugin
+import org.bukkit.block.Block
 import org.bukkit.metadata.FixedMetadataValue
 import org.bukkit.metadata.MetadataValue
 import org.bukkit.plugin.Plugin
@@ -8,7 +9,7 @@ import org.bukkit.plugin.Plugin
 private val plugin = ThePitPlugin.getPlugin()
 typealias Metadata = Pair<String, MetadataValue>
 
-val PLACED_BLOCK_METADATA: Metadata = "placed" to FixedMetadataValue(plugin, true)
+val BREAKABLE_BLOCK_METADATA: Metadata = "breakable" to NullMetadataValue
 
 object NullMetadataValue : MetadataValue {
 
@@ -34,4 +35,14 @@ object NullMetadataValue : MetadataValue {
 
     override fun invalidate() {}
 
+}
+
+fun Block.hasMetaData(metaData: Metadata): Boolean {
+    return getMetadata(metaData.first).any {
+        if (it is FixedMetadataValue) {
+            it.value() == metaData.second.value()
+        } else {
+            it == metaData.second
+        }
+    }
 }

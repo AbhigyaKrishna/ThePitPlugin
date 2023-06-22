@@ -8,18 +8,12 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 import me.abhigya.pit.configuration.Configs
 import me.abhigya.pit.configuration.ConfigsImpl
-import me.abhigya.pit.database.Database
-import me.abhigya.pit.database.Vendor
-import me.abhigya.pit.database.sql.SQLDatabase
-import me.abhigya.pit.database.sql.mariadb.MariaDB
-import me.abhigya.pit.database.sql.postgresql.PostGreSQL
 import me.abhigya.pit.util.Platform
 import net.kyori.adventure.platform.AudienceProvider
 import net.kyori.adventure.platform.bukkit.BukkitAudiences
 import net.kyori.adventure.text.minimessage.MiniMessage
 import org.bukkit.Bukkit
 import org.bukkit.configuration.Configuration
-import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.plugin.Plugin
 import org.bukkit.plugin.java.JavaPlugin
@@ -43,7 +37,7 @@ class ThePitPlugin : JavaPlugin(), CoroutineScope by CoroutineScope(
         }
     }
 
-    private val scope: Scope
+    val scope: Scope
 
     init {
         KTP.setConfiguration(getConfiguration())
@@ -59,6 +53,7 @@ class ThePitPlugin : JavaPlugin(), CoroutineScope by CoroutineScope(
                     bind<JavaPlugin>().toInstance(this@ThePitPlugin)
                     bind<Plugin>().toInstance(this@ThePitPlugin)
                     bind<Logger>().toInstance(this@ThePitPlugin.logger)
+                    bind<ClassLoader>().withName("pluginClassLoader").toProviderInstance { this@ThePitPlugin.classLoader }
                     bind<CoroutineScope>().toInstance(this@ThePitPlugin)
                     bind<MiniMessage>().toProviderInstance {
                         MiniMessage.builder().build()
