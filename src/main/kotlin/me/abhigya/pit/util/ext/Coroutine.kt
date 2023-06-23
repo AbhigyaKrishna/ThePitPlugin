@@ -4,21 +4,15 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import org.bukkit.Bukkit
 import org.bukkit.plugin.Plugin
-import javax.inject.Inject
+import toothpick.ktp.delegate.inject
 import kotlin.coroutines.CoroutineContext
 
 /**
  * A dispatcher that runs tasks on the bukkit main thread.
  */
-@SuppressWarnings("Injectable")
 object BukkitCoroutineDispatcher : CoroutineDispatcher() {
 
-    @Inject
-    internal lateinit var plugin: Plugin
-
-    init {
-        injectMembers()
-    }
+    internal val plugin: Plugin by inject()
 
     override fun dispatch(context: CoroutineContext, block: Runnable) {
         if (Bukkit.isPrimaryThread()) {

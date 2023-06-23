@@ -1,20 +1,15 @@
 -- Pit Schema
 
 -- Player Table
-CREATE TABLE "${table_prefix}players" (
+CREATE TABLE "${table_prefix}player_names" (
     "UUID"          ${uuidtype} NOT NULL,
     "NAME"          CHARACTER VARYING(16) NOT NULL,
     "LOWER_NAME"    CHARACTER VARYING(16) GENERATED ALWAYS AS (LOWER("NAME")),
-    "BALANCE"       FLOAT DEFAULT 0 NOT NULL,
-    "BOUNTY"        INT DEFAULT 0 NOT NULL,
-    "LEVEL"         INT DEFAULT 0 NOT NULL,
-    "PRESTIGE"      INT DEFAULT 0 NOT NULL,
-    "RENOWN"        INT DEFAULT 0 NOT NULL,
     CONSTRAINT "${table_prefix}uuid_name_unique" UNIQUE ("UUID", "NAME")
 )${options};
 
 -- Stats Table
-CREATE TABLE "${table_prefix}stats" (
+CREATE TABLE "${table_prefix}player_stats" (
     "UUID"                      ${uuidtype} NOT NULL,
     "BOW_DAMAGE_TAKEN"          FLOAT DEFAULT 0 NOT NULL,
     "DAMAGE_TAKEN"              FLOAT DEFAULT 0 NOT NULL,
@@ -45,5 +40,5 @@ CREATE TABLE "${table_prefix}stats" (
 )${options};
 
 -- Indexes
-CREATE INDEX "${table_prefix}player_name_idx" ON "${table_prefix}players" ("NAME");
-CREATE INDEX "${table_prefix}player_lower_name_idx" ON "${table_prefix}players" ("LOWER_NAME");
+CREATE INDEX "${table_prefix}player_name_idx" ON "${table_prefix}player_names" ("NAME");
+CREATE INDEX "${table_prefix}player_lower_name_idx" ON "${table_prefix}player_names" ("LOWER_NAME");

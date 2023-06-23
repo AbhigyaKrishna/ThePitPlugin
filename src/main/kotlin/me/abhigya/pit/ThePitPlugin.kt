@@ -9,6 +9,7 @@ import kotlinx.coroutines.runBlocking
 import me.abhigya.pit.configuration.Configs
 import me.abhigya.pit.configuration.ConfigsImpl
 import me.abhigya.pit.util.Platform
+import me.abhigya.pit.util.ext.BukkitCoroutineDispatcher
 import net.kyori.adventure.platform.AudienceProvider
 import net.kyori.adventure.platform.bukkit.BukkitAudiences
 import net.kyori.adventure.text.minimessage.MiniMessage
@@ -69,6 +70,7 @@ class ThePitPlugin : JavaPlugin(), CoroutineScope by CoroutineScope(
                 }
             ).supportScopeAnnotation(PitPluginScope::class.java)
         }
+        scope.inject(BukkitCoroutineDispatcher)
     }
 
     override fun onEnable() {

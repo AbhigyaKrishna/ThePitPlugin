@@ -3,11 +3,9 @@ package me.abhigya.pit.model
 import org.bukkit.entity.Player
 import java.time.temporal.TemporalAccessor
 import java.util.*
-import java.util.concurrent.atomic.AtomicReference
 
 data class PitPlayer(
     private val player: Player,
-    val balance: AtomicReference<Balance> = AtomicReference(Balance.zero()),
     val stats: PlayerStats = PlayerStats(),
     val applicableInventory: InventoryData = InventoryData()
 ) : Player by player {

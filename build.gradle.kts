@@ -1,9 +1,8 @@
 import de.comahe.i18n4k.gradle.plugin.i18n4k
-import org.jooq.codegen.GenerationTool
 import org.jooq.codegen.KotlinGenerator
 import org.jooq.meta.hsqldb.HSQLDBDatabase
-import org.jooq.meta.jaxb.*
-import org.jooq.meta.jaxb.Target
+import org.jooq.meta.jaxb.ForcedType
+import org.jooq.meta.jaxb.Logging
 
 plugins {
     kotlin("jvm") version "1.8.21"
@@ -11,6 +10,7 @@ plugins {
     id("com.github.johnrengelman.shadow") version "7.1.2"
     id("net.minecrell.plugin-yml.bukkit") version "0.5.3"
     id("org.flywaydb.flyway") version "9.18.0"
+    id("nu.studer.jooq") version "8.2"
     id("de.comahe.i18n4k") version "0.5.0"
 }
 
@@ -21,7 +21,17 @@ val javaVersion = 17
 val toothpick_version = "3.1.0"
 val adventure_version = "4.13.1"
 val adventure_platform_version = "4.3.0"
-val jooq_version = "3.18.0"
+val jooq_version = "3.18.4"
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath("org.hsqldb:hsqldb:2.5.2")
+    }
+}
 
 repositories {
     mavenCentral()
@@ -31,21 +41,25 @@ repositories {
 }
 
 dependencies {
+    // Platform
     implementation(platform("org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.6.4"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
     implementation("com.github.stephanenicolas.toothpick:ktp:$toothpick_version")
     kapt("com.github.stephanenicolas.toothpick:toothpick-compiler:$toothpick_version")
     compileOnly("org.spigotmc:spigot-api:1.17.1-R0.1-SNAPSHOT")
-    compileOnly(fileTree(mapOf("dir" to "${rootProject.rootDir}/lib", "include" to listOf("*.jar"))))
-    implementation("com.github.cryptomorin:XSeries:9.1.0")
-    implementation("fr.minuskube.inv:smart-invs:1.2.7")
-    implementation("space.arim.dazzleconf:dazzleconf-ext-snakeyaml:1.2.0-M2")
-    implementation("xyz.xenondevs:particle:1.7.1")
+
+    // Database
     implementation("org.flywaydb:flyway-core:9.18.0")
     implementation("org.jooq:jooq:$jooq_version")
     implementation("org.jooq:jooq-kotlin:$jooq_version")
     implementation("com.zaxxer:HikariCP:4.0.3")
+    jooqGenerator("org.hsqldb:hsqldb:2.5.2")
+
+    // Others
+    implementation("com.github.cryptomorin:XSeries:9.1.0")
+    implementation("fr.minuskube.inv:smart-invs:1.2.7")
+    implementation("space.arim.dazzleconf:dazzleconf-ext-snakeyaml:1.2.0-M2")
     implementation("net.kyori:adventure-api:$adventure_version")
     implementation("net.kyori:adventure-text-serializer-gson:$adventure_version")
     implementation("net.kyori:adventure-text-serializer-legacy:$adventure_version")
@@ -54,6 +68,10 @@ dependencies {
     implementation("net.kyori:adventure-platform-bukkit:$adventure_platform_version")
     implementation("de.comahe.i18n4k:i18n4k-core-jvm:0.5.0")
     compileOnly("com.github.MilkBowl:VaultAPI:1.7")
+}
+
+kotlin {
+    jvmToolchain(javaVersion)
 }
 
 val databaseUrl = "jdbc:hsqldb:file:${project.buildDir}/schema-gen/database;shutdown=true"
@@ -72,21 +90,51 @@ flyway {
     )
 }
 
-i18n4k {
-    sourceCodeLocales = listOf("en")
+jooq {
+    version.set(jooq_version)
+
+    configurations {
+        create("main") {
+            generateSchemaSourceOnCompilation.set(true)
+
+            jooqConfiguration.apply {
+                logging = Logging.WARN
+                jdbc.apply {
+                    driver = "org.hsqldb.jdbc.JDBCDriver"
+                    url = databaseUrl
+                    user = "SA"
+                    password = ""
+                }
+
+                generator.apply {
+                    name = KotlinGenerator::class.java.canonicalName
+                    database.apply {
+                        name = HSQLDBDatabase::class.java.canonicalName
+                        inputSchema = "PUBLIC"
+                        includes = ".*"
+                        excludes = "(?i:information_schema\\\\..*)|(?i:system_lobs\\\\..*)"
+                        schemaVersionProvider = "SELECT :schema_name || '_' || MAX(\"version\") FROM \"schema_history\""
+                        forcedTypes = listOf(
+                            ForcedType()
+                                .withUserType("java.util.UUID")
+                                .withBinding("me.abhigya.pit.database.binding.UUIDBinding")
+                                .withIncludeExpression(".*\\.(UUID)\$")
+                                .withIncludeTypes("^UUID\$")
+                        )
+                        generate.withJavadoc(true)
+                            .withComments(true)
+                            .withDaos(true)
+                        target.withPackageName("me.abhigya.jooq.codegen")
+                            .withDirectory("${project.buildDir}/schema-gen/jooq")
+                    }
+                }
+            }
+        }
+    }
 }
 
-buildscript {
-    repositories {
-        mavenLocal()
-        mavenCentral()
-    }
-
-    dependencies {
-        classpath("org.jooq:jooq-meta:3.18.0")
-        classpath("org.jooq:jooq-codegen:3.18.0")
-        classpath("org.hsqldb:hsqldb:2.5.2")
-    }
+i18n4k {
+    sourceCodeLocales = listOf("en")
 }
 
 configurations.implementation {
@@ -96,55 +144,6 @@ configurations.implementation {
 }
 
 tasks {
-    register("jooqGen") {
-        GenerationTool.generate(
-            Configuration()
-                .withJdbc(
-                    Jdbc()
-                        .withDriver("org.hsqldb.jdbc.JDBCDriver")
-                        .withUrl(databaseUrl)
-                        .withUser("SA")
-                        .withPassword(""),
-                )
-                .withGenerator(
-                    Generator()
-                        .withName(KotlinGenerator::class.java.canonicalName)
-                        .withDatabase(
-                            Database()
-                                .withName(HSQLDBDatabase::class.java.canonicalName)
-                                .withInputSchema("PUBLIC")
-                                .withIncludes(".*")
-                                .withExcludes("flyway_schema_history")
-                                .withExcludes("(?i:information_schema\\..*)|(?i:system_lobs\\..*)")
-                                .withSchemaVersionProvider("SELECT :schema_name || '_' || MAX(\"version\") FROM \"schema_history\"")
-                                .withForcedTypes(ForcedType()
-                                    .withUserType("java.util.UUID")
-                                    .withBinding("me.abhigya.pit.database.binding.UUIDBinding")
-                                    .withIncludeExpression(".*\\.(UUID)\$")
-                                    .withIncludeTypes("^UUID\$"),
-                                    ForcedType()
-                                        .withUserType("me.abhigya.pit.model.Balance")
-                                        .withConverter("me.abhigya.pit.database.binding.BalanceConverter")
-                                        .withIncludeExpression(".*\\.(BALANCE)\$")
-                                        .withIncludeTypes("^FLOAT\$")
-                                ),
-                        )
-                        .withGenerate(
-                            Generate()
-                                .withJavadoc(true)
-                                .withComments(true)
-                                .withDaos(true)
-                        )
-                        .withTarget(
-                            Target()
-                                .withPackageName("me.abhigya.jooq.codegen")
-                                .withDirectory("src/main/kotlin"),
-                        ),
-                ),
-        )
-        dependsOn(flywayMigrate)
-    }
-
     assemble {
         dependsOn(shadowJar)
     }
@@ -154,7 +153,6 @@ tasks {
         kotlinOptions.jvmTarget = javaVersion.toString()
         kotlinOptions.freeCompilerArgs = listOf("-Xjsr305=strict", "-Xjvm-default=all")
         dependsOn(flywayMigrate)
-        dependsOn(getTasksByName("jooqGen", false))
     }
 
     processResources {

@@ -1,9 +1,7 @@
 package me.abhigya.pit.model.loader
 
-import me.abhigya.jooq.codegen.tables.references.PLAYERS
-import me.abhigya.jooq.codegen.tables.references.STATS
+import me.abhigya.jooq.codegen.tables.references.PLAYER_STATS
 import me.abhigya.pit.database.transaction
-import me.abhigya.pit.model.Balance
 import me.abhigya.pit.model.PitPlayer
 import me.abhigya.pit.model.PlayerStats
 
@@ -27,14 +25,8 @@ class LazyPlayerDataLoader(player: PitPlayer) : PlayerDataLoader(player) {
 
     override fun load() {
         transaction {
-            val record = fetch(PLAYERS, PLAYERS.UUID.eq(player.uniqueId)).first()
-            player.balance.set(record.balance?.run(Balance::fromNumber) ?: Balance.zero())
-            player.bounty = record.bounty ?: 0
-            player.level = record.level ?: 0
-            player.renown = record.renown ?: 0
             status = LoadStatus.LOADED_PLAYER_DATA
-
-            val stats = fetch(STATS, STATS.UUID.eq(player.uniqueId)).first()
+            val stats = fetch(PLAYER_STATS, PLAYER_STATS.UUID.eq(player.uniqueId)).first()
             for (value in PlayerStats.VALUES) {
                 player.stats[value] = stats.getValue(value.key(), value.type) ?: value.zeroValue()
             }
