@@ -9,9 +9,7 @@ data class PitPlayer(
     private val player: Player,
     val balance: AtomicReference<Balance> = AtomicReference(Balance.zero()),
     val stats: PlayerStats = PlayerStats(),
-    var bounty: Int = 0,
-    var level: Int = 0,
-    var renown: Int = 0
+    val applicableInventory: InventoryData = InventoryData()
 ) : Player by player {
 
     companion object {
@@ -26,6 +24,10 @@ data class PitPlayer(
         }
     }
 
-    var lastHitTagged: Pair<TemporalAccessor, PitPlayer>? = null
+    var lastHitTagged: Stack<HitData> = Stack()
+    var isInPit: Boolean = false
+        internal set
 
 }
+
+typealias HitData = Pair<TemporalAccessor, PitPlayer>

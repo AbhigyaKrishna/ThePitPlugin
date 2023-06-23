@@ -16,8 +16,3 @@ fun getConfiguration(): Configuration {
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
 annotation class PitPluginScope
-
-@Scope
-@Target(AnnotationTarget.CLASS)
-@Retention(AnnotationRetention.RUNTIME)
-annotation class ArenaScope

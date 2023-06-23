@@ -52,7 +52,7 @@ class ThePitPlugin : JavaPlugin(), CoroutineScope by CoroutineScope(
                 module {
                     bind<JavaPlugin>().toInstance(this@ThePitPlugin)
                     bind<Plugin>().toInstance(this@ThePitPlugin)
-                    bind<Logger>().toInstance(this@ThePitPlugin.logger)
+                    bind<Logger>().toProviderInstance { this@ThePitPlugin.logger }
                     bind<ClassLoader>().withName("pluginClassLoader").toProviderInstance { this@ThePitPlugin.classLoader }
                     bind<CoroutineScope>().toInstance(this@ThePitPlugin)
                     bind<MiniMessage>().toProviderInstance {
@@ -64,7 +64,7 @@ class ThePitPlugin : JavaPlugin(), CoroutineScope by CoroutineScope(
                     bind<Gson>().toProviderInstance {
                         GsonBuilder().disableHtmlEscaping().serializeNulls().create()
                     }.providesSingleton().providesReleasable()
-                    bind<Path>().withName("dataFolder").toInstance(this@ThePitPlugin.dataFolder.toPath())
+                    bind<Path>().withName("dataFolder").toProviderInstance { this@ThePitPlugin.dataFolder.toPath() }
                     bind<Configs>().toClass(ConfigsImpl::class).singleton()
                 }
             ).supportScopeAnnotation(PitPluginScope::class.java)

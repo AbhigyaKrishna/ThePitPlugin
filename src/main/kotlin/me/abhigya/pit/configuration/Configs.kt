@@ -1,6 +1,8 @@
 package me.abhigya.pit.configuration
 
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import me.abhigya.pit.PitPluginScope
 import org.yaml.snakeyaml.Yaml
@@ -16,6 +18,7 @@ import toothpick.Scope
 import java.nio.channels.FileChannel
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
+import java.util.HashSet
 import java.util.logging.Logger
 import javax.inject.Inject
 import javax.inject.Named
@@ -29,18 +32,21 @@ interface Configs {
 
     val databaseConfig: DataBaseSettingsConfig
 
+    val arenaConfigs: List<ArenaDataConfig>
+
 }
 
 @Singleton
 @PitPluginScope
 @InjectConstructor
 class ConfigsImpl(
-    scope: Scope,
+    private val scope: Scope,
     @Named("dataFolder") private val dataFolder: Path
 ) : Configs {
 
     private val configConfigProvider = ConfigProvider(MainConfig::class)
     private val databaseConfigProvider = ConfigProvider(DataBaseSettingsConfig::class)
+    private val arenaConfigProvider = HashSet<ConfigProvider<ArenaDataConfig>>()
 
     init {
         scope.inject(configConfigProvider)
@@ -51,11 +57,29 @@ class ConfigsImpl(
 
     override val databaseConfig: DataBaseSettingsConfig = databaseConfigProvider.config
 
+    override val arenaConfigs: List<ArenaDataConfig> = arenaConfigProvider.map { it.config }
+
     suspend fun reloadConfigs(): ConfigProvider.Result = coroutineScope {
+        if (!dataFolder.exists()) {
+            dataFolder.toFile().mkdirs()
+        }
+
+        val arenas = dataFolder.resolve("arenas").toFile()
+        if (!arenas.exists()) {
+            arenas.mkdirs()
+        }
+
+        arenaConfigProvider.clear()
+        val futures = ArrayList<Deferred<ConfigProvider.Result>>()
+        for (file in arenas.listFiles { _, name -> name.endsWith(".yml") }!!) {
+            val provider = ConfigProvider(ArenaDataConfig::class)
+            scope.inject(provider)
+            futures.add(async { provider.reloadConfig(file.toPath()) })
+        }
         val res1 = async { configConfigProvider.reloadConfig(dataFolder.resolve("config.yml")) }
         val res2 = async { databaseConfigProvider.reloadConfig(dataFolder.resolve("database.yml")) }
 
-        return@coroutineScope ConfigProvider.Result.combine(res1.await(), res2.await())
+        return@coroutineScope ConfigProvider.Result.combine(futures.awaitAll() + res1.await() + res2.await())
     }
 
 }
@@ -66,6 +90,8 @@ class ConfigProvider<T : Any>(val configClass: KClass<T>) {
     companion object {
         private val CONFIGURATION_OPTIONS = ConfigurationOptions.Builder()
             .addSerialiser(DurationSerializer)
+            .addSerialiser(GameRuleSerializer)
+            .addSerialiser(Pos3DSerializer)
             .setCreateSingleElementCollections(true)
             .build()
         private val SNAKE_YAML_OPTIONS = SnakeYamlOptions.Builder()
@@ -131,6 +157,10 @@ class ConfigProvider<T : Any>(val configClass: KClass<T>) {
 
         companion object {
             fun combine(vararg results: Result): Result {
+                return combine(results.toList())
+            }
+
+            fun combine(results: Collection<Result>): Result {
                 return values()[results.maxOfOrNull { it.ordinal } ?: 0]
             }
         }

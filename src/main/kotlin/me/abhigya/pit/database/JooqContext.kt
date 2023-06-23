@@ -1,12 +1,9 @@
 package me.abhigya.pit.database
 
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import me.abhigya.jooq.codegen.tables.records.PlayersRecord
-import me.abhigya.jooq.codegen.tables.records.StatsRecord
-import me.abhigya.jooq.codegen.tables.references.PLAYERS
-import me.abhigya.jooq.codegen.tables.references.STATS
 import me.abhigya.pit.ThePitPlugin
 import me.abhigya.pit.database.sql.SQLDatabase
 import org.jooq.ConnectionProvider
@@ -20,7 +17,6 @@ import org.jooq.impl.DefaultConfiguration
 import org.jooq.impl.NoConnectionProvider
 import toothpick.ktp.extension.getInstance
 import java.sql.Connection
-import java.util.*
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -87,23 +83,23 @@ val Vendor.uuidType
 
 val SQLDatabase.context: JooqContext get() = JooqContext(vendor.dialect)
 
+class Transaction(
+    val context: JooqContext,
+    val connection: Connection
+) : DSLContext by context.createContext(connection)
+
 @OptIn(ExperimentalContracts::class)
-inline fun databaseTransaction(crossinline block: suspend JooqContext.(DSLContext) -> Unit) {
+inline fun transaction(
+    coroutineScope: CoroutineScope = ThePitPlugin.getPlugin(),
+    database: SQLDatabase = ThePitPlugin.getPlugin().scope.getInstance<SQLDatabase>(),
+    dispatcher: CoroutineDispatcher = Dispatchers.IO,
+    crossinline block: suspend Transaction.() -> Unit
+) {
     contract {
         callsInPlace(block, InvocationKind.AT_MOST_ONCE)
     }
-    val plugin = ThePitPlugin.getPlugin()
-    plugin.launch(Dispatchers.IO) {
-        val database = plugin.scope.getInstance<SQLDatabase>()
+    coroutineScope.launch(dispatcher) {
         val jooqContext = database.context
-        block(jooqContext, jooqContext.createContext(database.connection))
+        block(Transaction(jooqContext, database.connection))
     }
-}
-
-suspend fun JooqContext.fetchPlayerData(context: DSLContext, uuid: UUID): PlayersRecord = coroutineScope {
-    context.fetch(PLAYERS, PLAYERS.UUID.eq(uuid)).first()
-}
-
-suspend fun JooqContext.fetchPlayerStats(context: DSLContext, uuid: UUID): StatsRecord = coroutineScope {
-    context.fetch(STATS, STATS.UUID.eq(uuid)).first()
 }

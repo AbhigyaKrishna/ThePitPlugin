@@ -3,16 +3,13 @@ package me.abhigya.pit.database.sql
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import kotlinx.coroutines.coroutineScope
-import me.abhigya.pit.database.Database
-import me.abhigya.pit.database.DatabaseSettings
-import me.abhigya.pit.database.Vendor
-import me.abhigya.pit.database.NullConnection
+import me.abhigya.pit.configuration.DataBaseSettingsConfig
+import me.abhigya.pit.database.*
 import java.sql.*
 
 abstract class SQLDatabase(
     vendor: Vendor,
-    protected val settings: DatabaseSettings,
-    protected val config: HikariConfig
+    protected val settings: DataBaseSettingsConfig
 ) : Database(vendor) {
 
     companion object {
@@ -21,12 +18,16 @@ abstract class SQLDatabase(
         const val SOCKET_TIMEOUT: Int = 30000
     }
 
+    protected val config = HikariConfig()
     protected var dataSource: HikariDataSource? = null
     private var retries = 5
 
     var connection: Connection = NullConnection
         @Throws(IllegalStateException::class, SQLException::class)
         get() {
+            if (dataSource == null) {
+                throw IllegalStateException("Database has not been initialized yet!")
+            }
             var trys = 0
             var exception: SQLTimeoutException? = null
             while (trys < retries) {
@@ -55,28 +56,58 @@ abstract class SQLDatabase(
             false
         }
 
-    protected abstract fun prepare()
+    abstract val props: Map<String, Any>
 
-    @Throws(SQLException::class)
-    override fun connect() {
-        prepare()
+    abstract val url: String
 
-        config.username = settings.credentials.username
-        config.password = settings.credentials.password
-        config.driverClassName = vendor.jdbcDriver.jdbcDriverClass
-        config.dataSourceClassName = vendor.jdbcDriver.dataSourceClass
+    protected fun setDriverClassName(driverClass: String) {
+        val currentThread = Thread.currentThread()
+        val initialClassLoader = currentThread.contextClassLoader
+        currentThread.contextClassLoader = javaClass.classLoader
+        try {
+            config.driverClassName = driverClass
+        } finally {
+            currentThread.contextClassLoader = initialClassLoader
+        }
     }
 
+    protected open fun setUsernameAndPassword() {
+        val credentials = settings.authDetails()
+        config.username = credentials.username()
+        config.password = credentials.password()
+    }
+
+    @Synchronized
+    @Throws(SQLException::class)
+    override fun connect() {
+        config.jdbcUrl = url + vendor.jdbcDriver.formatConnectionProperties(props)
+        setUsernameAndPassword()
+        setDriverClassName(vendor.jdbcDriver.jdbcDriverClass)
+
+        config.connectionTimeout = settings.connectionTimeout().inWholeMilliseconds
+        config.maxLifetime = settings.maxLifetime().inWholeMilliseconds
+
+        val poolSize = settings.connectionPoolSize()
+        config.minimumIdle = poolSize
+        config.maximumPoolSize = poolSize
+
+        config.isAutoCommit = AUTOCOMMIT
+        config.transactionIsolation = "TRANSACTION_REPEATABLE_READ"
+        config.poolName = "ThePitPool-${vendor}"
+        config.connectionInitSql = vendor.initSql
+        config.isIsolateInternalQueries = true
+
+        dataSource = HikariDataSource(config)
+        connection = dataSource!!.connection
+    }
+
+    @Synchronized
     @Throws(SQLException::class)
     override fun disconnect() {
         check(isConnected) { "Not connected!" }
         connection.close()
         connection = NullConnection
         dataSource?.close()
-    }
-
-    protected fun createDataSource() {
-        dataSource = HikariDataSource(config)
     }
 
     @Throws(SQLException::class)

@@ -28,14 +28,14 @@ interface DataBaseSettingsConfig {
     @ConfKey("connection-timeout")
     @ConfComments("The maximum number of seconds to wait for a connection to become available")
     @ConfDefault.DefaultString("30s")
-    fun connectionTimeoutSeconds(): Duration
+    fun connectionTimeout(): Duration
 
     @ConfKey("max-lifetime")
     @ConfComments("The maximum lifetime of a connection in the pool.",
         "This value should be set for MariaDB or MySQL.",
         "HikariCP notes: It should be several seconds shorter than any database or infrastructure imposed connection time limit")
     @ConfDefault.DefaultString("25m")
-    fun maxLifetimeMinutes(): Duration
+    fun maxLifetime(): Duration
 
     @ConfKey("auth-details")
     @SubSection

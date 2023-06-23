@@ -1,27 +1,30 @@
 package me.abhigya.pit.database
 
 import com.zaxxer.hikari.HikariConfig
+import me.abhigya.pit.configuration.DataBaseSettingsConfig
 import me.abhigya.pit.util.ext.logger
 
 class DatabaseSettings(
-    var credentials: DatabaseCredentials,
-    val hikariConfiguration: HikariConfiguration,
+    val config: DataBaseSettingsConfig,
     var vendor: Vendor
 ) {
 
     private val logger = logger<DatabaseSettings>()
+    private val hikariContext = HikariConfig()
 
     private fun checkCredentials() {
-        if (vendor.isRemote() && credentials.username == "default" || credentials.password == "default") {
+        var username = config.authDetails().username()
+        var password = config.authDetails().password()
+        if (vendor.isRemote() && username == "default" || password == "default") {
             logger.warning("The username and/or password for the database is not set! Defaulting to local database!")
             vendor = Vendor.HSQLDB
         }
         if (vendor == Vendor.HSQLDB) {
-            this.credentials = this.credentials.copy(
-                username = "SA",
-                password = ""
-            )
+            username = "SA"
+            password = ""
         }
+        hikariContext.username = username
+        hikariContext.password = password
     }
 }
 

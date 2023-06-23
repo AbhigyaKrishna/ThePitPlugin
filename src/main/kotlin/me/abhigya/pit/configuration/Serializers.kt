@@ -1,8 +1,13 @@
 package me.abhigya.pit.configuration
 
+import me.abhigya.pit.model.Pos3D
+import me.abhigya.pit.util.ext.GameRuleValue
+import me.abhigya.pit.util.ext.value
+import org.bukkit.GameRule
 import space.arim.dazzleconf.serialiser.Decomposer
 import space.arim.dazzleconf.serialiser.FlexibleType
 import space.arim.dazzleconf.serialiser.ValueSerialiser
+import java.util.StringTokenizer
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -44,6 +49,50 @@ object DurationSerializer : ValueSerialiser<Duration> {
 
     override fun serialise(value: Duration, decomposer: Decomposer): Any {
         return "${value.inWholeMilliseconds}ms"
+    }
+
+}
+
+object GameRuleSerializer : ValueSerialiser<GameRuleValue> {
+
+    override fun getTargetClass(): Class<GameRuleValue> = GameRuleValue::class.java
+
+    override fun deserialise(flexibleType: FlexibleType): GameRuleValue {
+        val tokenizer = StringTokenizer(flexibleType.string, " ")
+        val gameRule: GameRule<*> = GameRule.getByName(tokenizer.nextToken()) ?: throw IllegalArgumentException("Invalid game rule")
+        return when(gameRule.type) {
+            Boolean::class.java -> {
+                val value = tokenizer.nextToken().toBoolean()
+                gameRule.value(value)
+            }
+            Int::class.java -> {
+                val value = tokenizer.nextToken().toInt()
+                return gameRule.value(value)
+            }
+            else -> throw IllegalArgumentException("Invalid game rule")
+        }
+    }
+
+    override fun serialise(value: GameRuleValue, decomposer: Decomposer): Any {
+        return "${value.rule} ${value.value}"
+    }
+
+}
+
+object Pos3DSerializer : ValueSerialiser<Pos3D> {
+
+    override fun getTargetClass(): Class<Pos3D> = Pos3D::class.java
+
+    override fun deserialise(flexibleType: FlexibleType): Pos3D {
+        val tokenizer = StringTokenizer(flexibleType.string, ":")
+        val x = tokenizer.nextToken().toDouble()
+        val y = tokenizer.nextToken().toDouble()
+        val z = tokenizer.nextToken().toDouble()
+        return Pos3D(x, y, z)
+    }
+
+    override fun serialise(value: Pos3D, decomposer: Decomposer): Any {
+        return String.format("%.2f:%.2f:%.2f", value.x, value.y, value.z)
     }
 
 }
