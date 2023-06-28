@@ -80,6 +80,12 @@ abstract class SQLDatabase(
     @Synchronized
     @Throws(SQLException::class)
     override fun connect() {
+        try {
+            Class.forName(vendor.jdbcDriver.jdbcDriverClass)
+        } catch (e: ClassNotFoundException) {
+            throw SQLException("Failed to initialize jdbc driver!", e)
+        }
+
         config.jdbcUrl = url + vendor.jdbcDriver.formatConnectionProperties(props)
         setUsernameAndPassword()
         setDriverClassName(vendor.jdbcDriver.jdbcDriverClass)

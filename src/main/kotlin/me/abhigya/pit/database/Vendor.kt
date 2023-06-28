@@ -15,6 +15,18 @@ enum class Vendor(
     fun isRemote(): Boolean = !isLocal()
 }
 
+val Vendor.uuidType
+    get() = when (this) {
+        Vendor.HSQLDB, Vendor.POSTGRESQL -> "UUID"
+        Vendor.MYSQL, Vendor.MARIADB -> "BINARY(16)"
+    }
+
+val Vendor.options
+    get() = when (this) {
+        Vendor.HSQLDB, Vendor.POSTGRESQL -> ""
+        Vendor.MYSQL, Vendor.MARIADB -> "CHARACTER SET utf8mb4 COLLATE utf8mb4_bin"
+    }
+
 enum class JDBCDriver(
     val jdbcDriverClass: String,
     val dataSourceClass: String,

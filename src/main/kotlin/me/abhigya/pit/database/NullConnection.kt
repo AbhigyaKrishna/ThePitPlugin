@@ -10,9 +10,7 @@ object NullConnection : Connection {
         throw UninitializedException
     }
 
-    override fun isWrapperFor(iface: Class<*>): Boolean {
-        throw UninitializedException
-    }
+    override fun isWrapperFor(iface: Class<*>): Boolean = false
 
     override fun close() {
         throw UninitializedException
@@ -84,9 +82,7 @@ object NullConnection : Connection {
         throw UninitializedException
     }
 
-    override fun getAutoCommit(): Boolean {
-        throw UninitializedException
-    }
+    override fun getAutoCommit(): Boolean = false
 
     override fun commit() {
         throw UninitializedException
@@ -100,9 +96,7 @@ object NullConnection : Connection {
         throw UninitializedException
     }
 
-    override fun isClosed(): Boolean {
-        throw UninitializedException
-    }
+    override fun isClosed(): Boolean = true
 
     override fun getMetaData(): DatabaseMetaData {
         throw UninitializedException
@@ -112,9 +106,7 @@ object NullConnection : Connection {
         throw UninitializedException
     }
 
-    override fun isReadOnly(): Boolean {
-        throw UninitializedException
-    }
+    override fun isReadOnly(): Boolean = true
 
     override fun setCatalog(catalog: String) {
         throw UninitializedException
@@ -184,9 +176,7 @@ object NullConnection : Connection {
         throw UninitializedException
     }
 
-    override fun isValid(timeout: Int): Boolean {
-        throw UninitializedException
-    }
+    override fun isValid(timeout: Int): Boolean = false
 
     override fun setClientInfo(name: String, value: String) {
         throw UninitializedException

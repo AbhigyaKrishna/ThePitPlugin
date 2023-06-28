@@ -14,7 +14,6 @@ import java.sql.SQLException
 import java.util.*
 import java.util.UUID
 
-
 class UUIDBinding : BaseBinding<UUID, UUID>() {
 
     override fun converter(): Converter<UUID, UUID> {

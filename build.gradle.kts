@@ -1,4 +1,5 @@
 import de.comahe.i18n4k.gradle.plugin.i18n4k
+import nu.studer.gradle.jooq.JooqGenerate
 import org.jooq.codegen.KotlinGenerator
 import org.jooq.meta.hsqldb.HSQLDBDatabase
 import org.jooq.meta.jaxb.ForcedType
@@ -50,7 +51,7 @@ dependencies {
     compileOnly("org.spigotmc:spigot-api:1.17.1-R0.1-SNAPSHOT")
 
     // Database
-    implementation("org.flywaydb:flyway-core:9.18.0")
+    implementation("org.flywaydb:flyway-core:9.20.0")
     implementation("org.jooq:jooq:$jooq_version")
     implementation("org.jooq:jooq-kotlin:$jooq_version")
     implementation("com.zaxxer:HikariCP:4.0.3")
@@ -180,6 +181,10 @@ tasks {
 
     jar {
         enabled = false
+    }
+
+    named<JooqGenerate>("generateJooq") {
+        allInputsDeclared.set(true)
     }
 }
 

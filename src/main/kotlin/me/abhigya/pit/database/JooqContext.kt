@@ -75,12 +75,6 @@ val Vendor.dialect: SQLDialect
         Vendor.POSTGRESQL -> SQLDialect.POSTGRES
     }
 
-val Vendor.uuidType
-    get() = when (this) {
-        Vendor.HSQLDB, Vendor.POSTGRESQL -> "UUID"
-        Vendor.MYSQL, Vendor.MARIADB -> "BINARY(16)"
-    }
-
 val SQLDatabase.context: JooqContext get() = JooqContext(vendor.dialect)
 
 class Transaction(

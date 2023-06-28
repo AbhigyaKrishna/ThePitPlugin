@@ -1,7 +1,5 @@
 package me.abhigya.pit.util.ext
 
-import me.abhigya.pit.configuration.MainConfig
-import me.abhigya.pit.model.InventoryData
 import org.bukkit.GameRule
 import org.bukkit.World
 import java.util.logging.Logger
