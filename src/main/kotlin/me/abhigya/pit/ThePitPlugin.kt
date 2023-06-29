@@ -8,6 +8,14 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 import me.abhigya.pit.configuration.Configs
 import me.abhigya.pit.configuration.ConfigsImpl
+import me.abhigya.pit.database.Database
+import me.abhigya.pit.database.DatabaseSettingsValidator
+import me.abhigya.pit.database.FlywayMigration
+import me.abhigya.pit.database.Vendor
+import me.abhigya.pit.database.sql.SQLDatabase
+import me.abhigya.pit.database.sql.hsqldb.HSQLDB
+import me.abhigya.pit.database.sql.mariadb.MariaDB
+import me.abhigya.pit.database.sql.postgresql.PostGreSQL
 import me.abhigya.pit.util.Platform
 import me.abhigya.pit.util.ext.BukkitCoroutineDispatcher
 import net.kyori.adventure.platform.AudienceProvider
@@ -25,8 +33,10 @@ import toothpick.ktp.binding.module
 import toothpick.ktp.extension.getInstance
 import java.io.File
 import java.nio.file.Path
+import java.sql.SQLException
 import java.util.logging.Level
 import java.util.logging.Logger
+import kotlin.system.measureTimeMillis
 
 class ThePitPlugin : JavaPlugin(), CoroutineScope by CoroutineScope(
     SupervisorJob() + CoroutineName("Pit")
@@ -91,50 +101,70 @@ class ThePitPlugin : JavaPlugin(), CoroutineScope by CoroutineScope(
 
         val config = scope.getInstance<Configs>() as ConfigsImpl
         runBlocking {
-            val result = config.reloadConfigs()
+            val time = measureTimeMillis {
+                val result = config.reloadConfigs()
 
-            if (!result.isSuccess()) {
-                logger.log(Level.SEVERE, "Failed to load configs!")
+                if (!result.isSuccess()) {
+                    logger.log(Level.SEVERE, "Failed to load configs!")
+                }
             }
+
+            logger.log(Level.INFO, "Loaded configs in ${time}ms!")
         }
 
-//        val db = when (config.database.vendor) {
-//            Vendor.H2 -> H2(File(this.dataFolder, "database.db"))
-//            Vendor.MYSQL -> MariaDB(
-//                config.database.host,
-//                config.database.port,
-//                config.database.database,
-//                config.database.username,
-//                config.database.password,
-//                config.database.params
-//            )
-//            Vendor.PostGreSQL -> PostGreSQL(
-//                config.database.host,
-//                config.database.port,
-//                config.database.database,
-//                config.database.username,
-//                config.database.password,
-//                config.database.params
-//            )
-//        }
-//
-//        runCatching {
-//            db.connect()
-//        }.onFailure {
-//            scope.getInstance<Logger>().log(Level.SEVERE, "Failed to connect to database", it)
-//            this.server.pluginManager.disablePlugin(this)
-//            return
-//        }
+        measureTimeMillis {
+            val validator = DatabaseSettingsValidator(config.databaseConfig, logger)
+            validator.validate()
 
-//        scope.installModules(
-//            module {
-//                bind<Database>().toInstance(db)
-//                bind<SQLDatabase>().toInstance(db)
-//            }
-//        )
+            val database = when (validator.effectiveVendor) {
+                Vendor.HSQLDB -> HSQLDB(dataFolder.toPath().resolve("database.db"), config.databaseConfig)
+                Vendor.MYSQL -> MariaDB(Vendor.MYSQL, config.databaseConfig)
+                Vendor.MARIADB -> MariaDB(Vendor.MARIADB, config.databaseConfig)
+                Vendor.POSTGRESQL -> PostGreSQL(config.databaseConfig)
+            }
+
+            val success = runBlocking {
+                try {
+                    database.connect()
+                    return@runBlocking true
+                } catch (e: SQLException) {
+                    logger.log(Level.SEVERE, "Failed to connect to database! The plugin won't run without connection to a database!", e)
+                    server.pluginManager.disablePlugin(this@ThePitPlugin)
+                    return@runBlocking false
+                }
+            }
+
+            if (!success) {
+                return
+            }
+
+            scope.installModules(
+                module {
+                    bind<Database>().toInstance(database)
+                    bind<SQLDatabase>().toInstance(database)
+                }
+            )
+
+            val migration = FlywayMigration(validator.effectiveVendor, database.dataSource!!)
+            try {
+                migration.migrate()
+            } catch (e: SQLException) {
+                logger.log(Level.SEVERE, "Unable to migrate your database. Please create a backup of your database "
+                        + "and promptly report this issue.", e)
+                server.pluginManager.disablePlugin(this@ThePitPlugin)
+                return
+            }
+        }.run {
+            logger.log(Level.INFO, "Connected to database in ${this}ms!")
+        }
     }
 
     override fun onDisable() {
+        runBlocking {
+            val database = scope.getInstance<Database>()
+            database.disconnect()
+        }
+
         KTP.closeScope(this)
     }
 

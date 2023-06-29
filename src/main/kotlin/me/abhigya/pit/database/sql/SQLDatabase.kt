@@ -12,14 +12,15 @@ abstract class SQLDatabase(
     protected val settings: DataBaseSettingsConfig
 ) : Database(vendor) {
 
-    companion object {
+    companion object Constants {
         const val AUTOCOMMIT: Boolean = false
         const val FETCH_SIZE: Int = 1000
         const val SOCKET_TIMEOUT: Int = 30000
     }
 
     protected val config = HikariConfig()
-    protected var dataSource: HikariDataSource? = null
+    var dataSource: HikariDataSource? = null
+        protected set
     private var retries = 5
 
     var connection: Connection = NullConnection
@@ -77,16 +78,15 @@ abstract class SQLDatabase(
         config.password = credentials.password()
     }
 
-    @Synchronized
     @Throws(SQLException::class)
-    override fun connect() {
+    override suspend fun connect() {
         try {
             Class.forName(vendor.jdbcDriver.jdbcDriverClass)
         } catch (e: ClassNotFoundException) {
-            throw SQLException("Failed to initialize jdbc driver!", e)
+            throw SQLException("Failed to initialize jdbc driver for ${vendor.display}!", e)
         }
 
-        config.jdbcUrl = url + vendor.jdbcDriver.formatConnectionProperties(props)
+        config.jdbcUrl = url + vendor.jdbcDriver.appendConnectionProperties(props)
         setUsernameAndPassword()
         setDriverClassName(vendor.jdbcDriver.jdbcDriverClass)
 
@@ -107,9 +107,8 @@ abstract class SQLDatabase(
         connection = dataSource!!.connection
     }
 
-    @Synchronized
     @Throws(SQLException::class)
-    override fun disconnect() {
+    override suspend fun disconnect() {
         check(isConnected) { "Not connected!" }
         connection.close()
         connection = NullConnection

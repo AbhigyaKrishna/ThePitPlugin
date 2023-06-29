@@ -7,9 +7,9 @@ abstract class Database(
     abstract val isConnected: Boolean
 
     @Throws(Exception::class)
-    abstract fun connect()
+    abstract suspend fun connect()
 
     @Throws(Exception::class)
-    abstract fun disconnect()
+    abstract suspend fun disconnect()
 
 }

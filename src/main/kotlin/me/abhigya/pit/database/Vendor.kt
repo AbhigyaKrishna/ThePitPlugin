@@ -38,7 +38,7 @@ enum class JDBCDriver(
     PostGreSQL("org.postgresql.Driver", "org.postgresql.ds.PGSimpleDataSource", '?', '&'),
 }
 
-fun JDBCDriver.formatConnectionProperties(props: Map<String, Any>): String {
+fun JDBCDriver.appendConnectionProperties(props: Map<String, Any>): String {
     if (props.isEmpty()) return ""
 
     return props.map { (k, v) -> "$k=$v" }

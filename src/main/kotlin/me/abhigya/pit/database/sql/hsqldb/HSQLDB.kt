@@ -2,6 +2,7 @@ package me.abhigya.pit.database.sql.hsqldb
 
 import me.abhigya.pit.configuration.DataBaseSettingsConfig
 import me.abhigya.pit.database.Vendor
+import me.abhigya.pit.database.context
 import me.abhigya.pit.database.sql.SQLDatabase
 import java.nio.file.Path
 import java.sql.SQLException
@@ -42,9 +43,8 @@ class HSQLDB(
         config.password = ""
     }
 
-    @Synchronized
     @Throws(IllegalStateException::class, SQLException::class)
-    override fun connect() {
+    override suspend fun connect() {
         if (!path.parent.isDirectory()) {
             path.parent.createDirectories()
         }
@@ -56,4 +56,11 @@ class HSQLDB(
         super.connect()
     }
 
+    @Throws(SQLException::class)
+    override suspend fun disconnect() {
+        if (isConnected) {
+            context.createContext(connection).query("SHUTDOWN").execute()
+        }
+        super.disconnect()
+    }
 }
