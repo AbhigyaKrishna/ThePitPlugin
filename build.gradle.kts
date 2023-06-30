@@ -30,7 +30,7 @@ buildscript {
     }
 
     dependencies {
-        classpath("org.hsqldb:hsqldb:2.5.2")
+        classpath("org.hsqldb:hsqldb:2.7.1")
     }
 }
 
@@ -55,7 +55,7 @@ dependencies {
     implementation("org.jooq:jooq:$jooq_version")
     implementation("org.jooq:jooq-kotlin:$jooq_version")
     implementation("com.zaxxer:HikariCP:4.0.3")
-    jooqGenerator("org.hsqldb:hsqldb:2.5.2")
+    jooqGenerator("org.hsqldb:hsqldb:2.7.1")
 
     // Others
     implementation("com.github.cryptomorin:XSeries:9.1.0")

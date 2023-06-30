@@ -4,6 +4,7 @@ import com.google.common.graph.GraphBuilder
 import com.google.common.graph.MutableGraph
 import me.abhigya.pit.ThePitPlugin
 import me.abhigya.pit.util.ext.logger
+import org.bukkit.event.HandlerList
 import org.bukkit.plugin.InvalidPluginException
 import org.bukkit.plugin.UnknownDependencyException
 import space.arim.dazzleconf.ConfigurationOptions
@@ -23,15 +24,22 @@ import java.util.logging.Level
 import javax.inject.Named
 import javax.inject.Singleton
 import kotlin.io.path.listDirectoryEntries
+import kotlin.system.measureTimeMillis
 
 interface AddonManager {
 
-    fun getAddon(name: String): PitAddon?
+    fun getAddon(name: String): Addon?
 
-    fun getAddons(): Collection<PitAddon>
+    fun getAddons(): Collection<Addon>
+
+    fun loadAddons(path: Path): Array<Addon>
 
     @Throws(InvalidPluginException::class)
-    fun loadAddon(path: Path): PitAddon
+    fun loadAddon(path: Path): Addon
+
+    fun enableAddon(addon: Addon)
+
+    fun disableAddon(addon: Addon)
 
 }
 
@@ -44,50 +52,64 @@ class SimpleAddonManager(
     private val scope: Scope
 ) : AddonManager {
 
-    private val addons: MutableMap<String, PitAddon> = ConcurrentHashMap()
+    private val addons: MutableMap<String, Addon> = ConcurrentHashMap()
     private val loaders: MutableList<AddonClassLoader> = CopyOnWriteArrayList()
     private val dependencyGraph: MutableGraph<String> = GraphBuilder.directed().build()
     private val logger = logger<AddonManager>()
     private val addonDescriptionLoader = SnakeYamlConfigurationFactory.create(AddonDescription::class.java, ConfigurationOptions.defaults())
 
-    override fun getAddon(name: String): PitAddon? {
+    override fun getAddon(name: String): Addon? {
         return addons[name]
     }
 
-    override fun getAddons(): Collection<PitAddon> {
+    override fun getAddons(): Collection<Addon> {
         return addons.values
     }
 
     @Synchronized
-    fun enableAddon(addon: PitAddon) {
+    override fun enableAddon(addon: Addon) {
         if (addon.isEnabled) {
             return
         }
 
+        logger.log(Level.INFO, "Enabling ${addon.name} v${addon.description.version()} by ${addon.description.authors()}")
         try {
-            addon.initiate()
-            addon.isEnabled = true
+            val time = measureTimeMillis {
+                addon.initiate()
+                addon.isEnabled = true
+                for (listener in addon.listeners) {
+                    plugin.server.pluginManager.registerEvents(listener, plugin)
+                }
+            }
+
+            logger.log(Level.INFO, "Enabled ${addon.name} in ${time}ms!")
         } catch (e: Throwable) {
             logger.log(Level.SEVERE, "Error occurred while enabling addon ${addon.name}", e)
         }
     }
 
     @Synchronized
-    fun disableAddon(addon: PitAddon) {
+    override fun disableAddon(addon: Addon) {
         if (!addon.isEnabled) {
             return
         }
 
+        logger.log(Level.INFO, "Disabling ${addon.name}")
         try {
             addon.disable()
             addon.isEnabled = false
+            for (listener in addon.listeners) {
+                HandlerList.unregisterAll(listener)
+            }
+
+            logger.log(Level.INFO, "Disabled ${addon.name}!")
         } catch (e: Throwable) {
             logger.log(Level.SEVERE, "Error occurred while disabling addon ${addon.name}", e)
         }
     }
 
-    fun loadAddons(directory: Path): Array<PitAddon> {
-        val result = ArrayList<PitAddon>()
+    override fun loadAddons(directory: Path): Array<Addon> {
+        val result = ArrayList<Addon>()
         val addons = HashMap<String, File>()
         val loadedAddons = HashSet<String>()
         val dependencies = HashMap<String, MutableList<String>>() // addon -> dependencies
@@ -275,7 +297,7 @@ class SimpleAddonManager(
     }
 
     @Throws(InvalidAddonException::class)
-    override fun loadAddon(path: Path): PitAddon {
+    override fun loadAddon(path: Path): Addon {
         val file = path.toFile()
         if (!file.exists()) {
             throw IllegalAccessException("Addon file does not exist!")
@@ -289,7 +311,7 @@ class SimpleAddonManager(
     }
 
     @Throws(InvalidAddonException::class)
-    private fun loadAddon0(file: File, description: AddonDescription): PitAddon {
+    private fun loadAddon0(file: File, description: AddonDescription): Addon {
         val addonFolder = dataFolder.resolve("addons/${description.name()}")
 
         for (depend in description.depends()) {
@@ -315,7 +337,7 @@ class SimpleAddonManager(
             file
         )
 
-        scope.installModules(
+        addonScope.installModules(
             module {
                 bind<ClassLoader>().withName("addonClassLoader").toInstance(classLoader)
             }

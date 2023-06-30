@@ -6,6 +6,8 @@ import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
+import me.abhigya.pit.addon.AddonManager
+import me.abhigya.pit.addon.SimpleAddonManager
 import me.abhigya.pit.configuration.Configs
 import me.abhigya.pit.configuration.ConfigsImpl
 import me.abhigya.pit.database.Database
@@ -36,6 +38,8 @@ import java.nio.file.Path
 import java.sql.SQLException
 import java.util.logging.Level
 import java.util.logging.Logger
+import kotlin.io.path.createDirectories
+import kotlin.io.path.isDirectory
 import kotlin.system.measureTimeMillis
 
 class ThePitPlugin : JavaPlugin(), CoroutineScope by CoroutineScope(
@@ -77,6 +81,7 @@ class ThePitPlugin : JavaPlugin(), CoroutineScope by CoroutineScope(
                     }.providesSingleton().providesReleasable()
                     bind<Path>().withName("dataFolder").toProviderInstance { this@ThePitPlugin.dataFolder.toPath() }
                     bind<Configs>().toClass(ConfigsImpl::class).singleton()
+                    bind<AddonManager>().toClass(SimpleAddonManager::class).singleton()
                 }
             ).supportScopeAnnotation(PitPluginScope::class.java)
         }
@@ -99,19 +104,21 @@ class ThePitPlugin : JavaPlugin(), CoroutineScope by CoroutineScope(
             return
         }
 
+        // Config
         val config = scope.getInstance<Configs>() as ConfigsImpl
         runBlocking {
-            val time = measureTimeMillis {
+            measureTimeMillis {
                 val result = config.reloadConfigs()
 
                 if (!result.isSuccess()) {
                     logger.log(Level.SEVERE, "Failed to load configs!")
                 }
+            }.run {
+                logger.log(Level.INFO, "Loaded configs in ${this}ms!")
             }
-
-            logger.log(Level.INFO, "Loaded configs in ${time}ms!")
         }
 
+        // Database
         measureTimeMillis {
             val validator = DatabaseSettingsValidator(config.databaseConfig, logger)
             validator.validate()
@@ -157,9 +164,26 @@ class ThePitPlugin : JavaPlugin(), CoroutineScope by CoroutineScope(
         }.run {
             logger.log(Level.INFO, "Connected to database in ${this}ms!")
         }
+
+        // Addons
+        val addonPath = dataFolder.toPath().resolve("addon")
+        if (!addonPath.isDirectory())
+            addonPath.createDirectories()
+
+        val addonManager = scope.getInstance<AddonManager>()
+        val loadedAddons = addonManager.loadAddons(addonPath)
+
+        for (addon in loadedAddons) {
+            addonManager.enableAddon(addon)
+        }
     }
 
     override fun onDisable() {
+        val addonManager = scope.getInstance<AddonManager>()
+        for (addon in addonManager.getAddons()) {
+            addonManager.disableAddon(addon)
+        }
+
         runBlocking {
             val database = scope.getInstance<Database>()
             database.disconnect()

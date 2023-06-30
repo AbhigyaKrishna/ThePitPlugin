@@ -30,7 +30,7 @@ class AddonClassLoader internal constructor(
     private val manifest = jarFile.manifest
     private val url = addonFile.toURI().toURL()
 
-    internal val addon: PitAddon
+    internal val addon: Addon
 
     private val classBlacklist = setOf(
         "org.bukkit.",
@@ -49,7 +49,7 @@ class AddonClassLoader internal constructor(
             }
 
             val addonClass = try {
-                jarClass.asSubclass(PitAddon::class.java)
+                jarClass.asSubclass(Addon::class.java)
             } catch (e: ClassCastException) {
                 throw InvalidAddonException("Main class '${addonDescription.main()}' does not extend PitAddon")
             }
@@ -93,7 +93,9 @@ class AddonClassLoader internal constructor(
                     val pkgName = name.substring(0, dot)
                     if (getDefinedPackage(pkgName) == null) {
                         try {
-                            manifest?.let { definePackage(pkgName, it, url) } ?: definePackage(
+                            manifest?.let {
+                                definePackage(pkgName, it, url)
+                            } ?: definePackage(
                                 pkgName,
                                 null,
                                 null,
